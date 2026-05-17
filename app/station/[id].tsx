@@ -460,7 +460,7 @@ function sourceLabel(kind: SourceKind): string {
     case 'official':
       return 'verified';
     case 'google':
-      return 'google';
+      return 'live';
   }
 }
 
