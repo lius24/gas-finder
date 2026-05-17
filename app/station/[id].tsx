@@ -76,7 +76,11 @@ export default function StationDetail() {
   const [favoritePending, setFavoritePending] = useState(false);
   const [station, setStation] = useState<Station | null>(seed);
   const [prices, setPrices] = useState<DetailPrice[]>(() =>
-    seed
+    seed &&
+    seed.octane != null &&
+    seed.price_cents != null &&
+    seed.source_kind != null &&
+    seed.observed_at != null
       ? [
           {
             octane: seed.octane,
@@ -455,6 +459,8 @@ function sourceLabel(kind: SourceKind): string {
       return 'reported';
     case 'official':
       return 'verified';
+    case 'google':
+      return 'google';
   }
 }
 

@@ -11,6 +11,7 @@ import { OctaneSelector } from '@/components/octane-selector';
 import { RadiusSelector } from '@/components/radius-selector';
 import { formatPriceCents } from '@/lib/geo';
 import {
+  DEFAULT_OCTANE,
   DEFAULT_RADIUS_METERS,
   getPreferredOctane,
   getPreferredRadius,
@@ -25,7 +26,7 @@ import type { Octane, StationWithPrice } from '@/lib/types';
 export default function MapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView | null>(null);
-  const [octane, setOctane] = useState<Octane>(93);
+  const [octane, setOctane] = useState<Octane>(DEFAULT_OCTANE);
   const [radius, setRadius] = useState<RadiusMeters>(DEFAULT_RADIUS_METERS);
   const [coords, setCoords] = useState<Location.LocationObjectCoords | null>(null);
   const [stations, setStations] = useState<StationWithPrice[]>([]);
@@ -143,23 +144,32 @@ export default function MapScreen() {
             longitudeDelta: 0.05,
           }}
           showsUserLocation>
-          {stations.map((s) => (
-            <Marker
-              key={s.id}
-              coordinate={{ latitude: s.latitude, longitude: s.longitude }}
-              title={s.brand ?? s.name}
-              description={`${formatPriceCents(s.price_cents)} · ${s.octane}`}
-              onCalloutPress={() =>
-                router.push({
-                  pathname: '/station/[id]',
-                  params: { id: s.id, seed: JSON.stringify(s) },
-                })
-              }>
-              <View style={styles.priceBadge}>
-                <Text style={styles.priceText}>{formatPriceCents(s.price_cents)}</Text>
-              </View>
-            </Marker>
-          ))}
+          {stations.map((s) => {
+            const hasPrice = s.price_cents !== null;
+            return (
+              <Marker
+                key={s.id}
+                coordinate={{ latitude: s.latitude, longitude: s.longitude }}
+                title={s.brand ?? s.name}
+                description={
+                  hasPrice && s.octane !== null
+                    ? `${formatPriceCents(s.price_cents as number)} · ${s.octane}`
+                    : 'no price yet'
+                }
+                onCalloutPress={() =>
+                  router.push({
+                    pathname: '/station/[id]',
+                    params: { id: s.id, seed: JSON.stringify(s) },
+                  })
+                }>
+                <View style={[styles.priceBadge, !hasPrice && styles.priceBadgeMuted]}>
+                  <Text style={[styles.priceText, !hasPrice && styles.priceTextMuted]}>
+                    {hasPrice ? formatPriceCents(s.price_cents as number) : '—'}
+                  </Text>
+                </View>
+              </Marker>
+            );
+          })}
         </MapView>
         <View style={styles.fabColumn} pointerEvents="box-none">
           <Pressable
@@ -182,7 +192,13 @@ export default function MapScreen() {
         {!refreshing && stations.length === 0 ? (
           <View style={styles.emptyBanner} pointerEvents="none">
             <Text style={styles.emptyBannerText}>
-              No stations with {octane} within this radius. Try a wider radius or another octane.
+              No stations within this radius. Try a wider radius.
+            </Text>
+          </View>
+        ) : !refreshing && stations.every((s) => s.price_cents === null) ? (
+          <View style={styles.emptyBanner} pointerEvents="none">
+            <Text style={styles.emptyBannerText}>
+              Stations are here, but no prices for {octane} octane yet.
             </Text>
           </View>
         ) : null}
@@ -214,6 +230,11 @@ const styles = StyleSheet.create({
     fontFamily: fonts.numeral,
     fontSize: 13,
   },
+  priceBadgeMuted: {
+    borderColor: colors.paperEdge,
+    opacity: 0.6,
+  },
+  priceTextMuted: { color: colors.inkSoft },
   settingsButton: {
     marginTop: 16,
     paddingHorizontal: 18,
