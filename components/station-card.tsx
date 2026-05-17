@@ -26,7 +26,7 @@ export function StationCard({ station, isCheapest, isClosest, favorited }: Props
           isCheapest && styles.cardCheapest,
           pressed && styles.cardPressed,
         ]}>
-        {isCheapest || isClosest ? (
+        {station.price_cents !== null && (isCheapest || isClosest) ? (
           <View style={styles.stampRow}>
             {isCheapest ? (
               <View style={[styles.stamp, styles.stampCheapest]}>
@@ -60,9 +60,13 @@ export function StationCard({ station, isCheapest, isClosest, favorited }: Props
               <Text style={styles.metaPrimary}>
                 {formatDistance(station.distance_meters)}
               </Text>
-              <Text style={styles.metaDot}>·</Text>
-              <Text style={styles.meta}>{sourceLabel(station.source_kind)}</Text>
-              {staleLabel(station.observed_at) ? (
+              {station.source_kind !== null && sourceLabel(station.source_kind) ? (
+                <>
+                  <Text style={styles.metaDot}>·</Text>
+                  <Text style={styles.meta}>{sourceLabel(station.source_kind)}</Text>
+                </>
+              ) : null}
+              {station.observed_at && staleLabel(station.observed_at) ? (
                 <>
                   <Text style={styles.metaDot}>·</Text>
                   <Text style={[styles.meta, styles.metaStale]}>
@@ -80,16 +84,24 @@ export function StationCard({ station, isCheapest, isClosest, favorited }: Props
           </View>
 
           <View style={styles.right}>
-            <View style={styles.pumpDisplay}>
-              <Text style={styles.priceWhole}>
-                {Math.floor(station.price_cents / 100)}
-              </Text>
-              <Text style={styles.priceDot}>.</Text>
-              <Text style={styles.priceFraction}>
-                {(station.price_cents % 100).toString().padStart(2, '0')}
-              </Text>
-            </View>
-            <Text style={styles.octaneTag}>{station.octane} OCTANE</Text>
+            {station.price_cents === null ? (
+              <View style={[styles.pumpDisplay, styles.pumpDisplayEmpty]}>
+                <Text style={styles.priceEmpty}>—.—</Text>
+              </View>
+            ) : (
+              <View style={styles.pumpDisplay}>
+                <Text style={styles.priceWhole}>
+                  {Math.floor(station.price_cents / 100)}
+                </Text>
+                <Text style={styles.priceDot}>.</Text>
+                <Text style={styles.priceFraction}>
+                  {(station.price_cents % 100).toString().padStart(2, '0')}
+                </Text>
+              </View>
+            )}
+            <Text style={styles.octaneTag}>
+              {station.octane !== null ? `${station.octane} OCTANE` : 'NO PRICE YET'}
+            </Text>
           </View>
         </View>
       </Pressable>
@@ -97,7 +109,8 @@ export function StationCard({ station, isCheapest, isClosest, favorited }: Props
   );
 }
 
-function sourceLabel(kind: StationWithPrice['source_kind']): string {
+function sourceLabel(kind: StationWithPrice['source_kind']): string | null {
+  if (kind === null) return null;
   switch (kind) {
     case 'scrape':
       return 'auto';
@@ -105,6 +118,13 @@ function sourceLabel(kind: StationWithPrice['source_kind']): string {
       return 'reported';
     case 'official':
       return 'verified';
+    case 'google':
+      return 'live';
+    default: {
+      const never: never = kind;
+      void never;
+      return null;
+    }
   }
 }
 
@@ -229,6 +249,16 @@ const styles = StyleSheet.create({
     paddingTop: 6,
     paddingBottom: 4,
     borderRadius: 6,
+  },
+  pumpDisplayEmpty: {
+    opacity: 0.5,
+  },
+  priceEmpty: {
+    fontFamily: fonts.priceHeavy,
+    fontSize: 22,
+    color: colors.amber,
+    lineHeight: 24,
+    letterSpacing: 1,
   },
   priceWhole: {
     fontFamily: fonts.priceHeavy,
