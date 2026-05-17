@@ -133,6 +133,68 @@ curl -X POST \
 The function also auto-purges any token that returns `DeviceNotRegistered`
 from Expo, so stale records don't pile up.
 
+## Daily price refresh (Google Places `fuelOptions`)
+
+`refresh-prices` is a cron-triggered worker that pulls live gas prices from
+Google Places `fuelOptions` for every station inside any user's
+`user_price_zones` circle, upserting rows into `prices` with
+`source_kind = 'google'`. The companion `refresh-station-prices` handles
+on-demand pull-to-refresh from the app (JWT-authed, 5 calls / 24 h per user
+via `price_refresh_log`).
+
+Required secret (server-side; do **not** reuse the mobile maps key — restrict
+the server key to "Places API (New)" only):
+
+```bash
+supabase secrets set GOOGLE_PLACES_API_KEY=AIza...
+```
+
+Schedule the daily worker via pg_cron + pg_net. Run this in the SQL editor
+once, swapping in your project URL and service-role key (the
+`cron.unschedule` guard makes it safe to re-run):
+
+```sql
+do $$
+begin
+  perform cron.unschedule('refresh-prices-daily');
+exception when others then null;
+end $$;
+
+select cron.schedule(
+  'refresh-prices-daily',
+  '0 11 * * *',
+  $job$
+    select net.http_post(
+      url := 'https://<your-project-ref>.supabase.co/functions/v1/refresh-prices',
+      headers := jsonb_build_object(
+        'Authorization', 'Bearer <YOUR_SERVICE_ROLE_KEY>',
+        'Content-Type', 'application/json'
+      ),
+      body := '{}'::jsonb
+    );
+  $job$
+);
+```
+
+Cadence dial: `'0 11 * * *'` is daily at 11:00 UTC. Switch to `'0 11 */2 * *'`
+for every other day (halves the bill) or `'0 11 */3 * *'` for every third
+day. Gas prices typically move once a day, so daily is the upper bound on
+freshness anyone needs.
+
+Stations that return no usable `fuelOptions` get their `places_fuel_attempts`
+counter incremented; after three failures and `places_fuel_seen_at IS NULL`
+they're demoted to Sunday-only retries — cost control for permanently dead
+place IDs.
+
+To smoke-test the worker without waiting for cron:
+
+```bash
+curl -X POST \
+  "https://<project-ref>.supabase.co/functions/v1/refresh-prices" \
+  -H "Authorization: Bearer <SERVICE_ROLE_KEY>"
+# → { "checked": N, "api_calls": N, "updated": M, "skipped": K, "demoted": D }
+```
+
 ## Bulk station ingestion (Google Places)
 
 Bootstrap a region's stations without hand-curating SQL. Uses Google Places
