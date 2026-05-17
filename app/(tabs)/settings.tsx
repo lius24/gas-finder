@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { ZonePicker } from '@/components/zone-picker';
 import { useAuth } from '@/lib/auth';
 import { listFavorites, type FavoriteWithStation } from '@/lib/favorites';
 import { supabase } from '@/lib/supabase';
@@ -75,6 +76,13 @@ export default function SettingsScreen() {
             </View>
           )}
         </View>
+
+        {session ? (
+          <View style={styles.section}>
+            <Text style={styles.sectionHeader}>PRICE TRACKING ZONE</Text>
+            <ZonePicker />
+          </View>
+        ) : null}
 
         {session ? (
           <View style={styles.section}>
