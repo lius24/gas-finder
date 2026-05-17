@@ -49,3 +49,6 @@ app-example
 # generated native folders
 /ios
 /android
+
+# deno (used by supabase functions local-dev check only — not deployed)
+deno.lock
