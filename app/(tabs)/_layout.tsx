@@ -1,33 +1,64 @@
 import { Tabs } from 'expo-router';
-import React from 'react';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { Colors } from '@/constants/theme';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { colors, fonts } from '@/lib/theme';
 
 export default function TabLayout() {
-  const colorScheme = useColorScheme();
-
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
+        tabBarActiveTintColor: colors.rust,
+        tabBarInactiveTintColor: colors.inkFaint,
         headerShown: false,
         tabBarButton: HapticTab,
+        tabBarStyle: {
+          backgroundColor: colors.paper,
+          borderTopColor: colors.paperEdge,
+          borderTopWidth: 1,
+          paddingTop: 6,
+          height: 86,
+        },
+        tabBarLabelStyle: {
+          fontFamily: fonts.bodyBold,
+          fontSize: 10,
+          letterSpacing: 2,
+          textTransform: 'uppercase',
+          marginTop: 2,
+        },
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Pumps',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="list.bullet" color={color} />
+          ),
         }}
       />
       <Tabs.Screen
-        name="explore"
+        name="map"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Atlas',
+          tabBarIcon: ({ color }) => <IconSymbol size={24} name="map.fill" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="upload"
+        options={{
+          title: 'Report',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="camera.fill" color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="settings"
+        options={{
+          title: 'Garage',
+          tabBarIcon: ({ color }) => (
+            <IconSymbol size={24} name="gearshape.fill" color={color} />
+          ),
         }}
       />
     </Tabs>

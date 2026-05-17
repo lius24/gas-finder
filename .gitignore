@@ -31,7 +31,15 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# scrapers cache
+scrapers/.cache/
+
+# supabase CLI local cache (contains project ref + pooler URL)
+supabase/.temp/
+supabase/.branches/
 
 # typescript
 *.tsbuildinfo

@@ -1,0 +1,260 @@
+import { Link } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+
+import { formatDistance, formatPriceCents } from '@/lib/geo';
+import { colors, fonts, radius, shadow, space } from '@/lib/theme';
+import type { StationWithPrice } from '@/lib/types';
+
+type Props = {
+  station: StationWithPrice;
+  isCheapest?: boolean;
+  isClosest?: boolean;
+  favorited?: boolean;
+};
+
+export function StationCard({ station, isCheapest, isClosest, favorited }: Props) {
+  return (
+    <Link
+      href={{
+        pathname: '/station/[id]',
+        params: { id: station.id, seed: JSON.stringify(station) },
+      }}
+      asChild>
+      <Pressable
+        style={({ pressed }) => [
+          styles.card,
+          isCheapest && styles.cardCheapest,
+          pressed && styles.cardPressed,
+        ]}>
+        {isCheapest || isClosest ? (
+          <View style={styles.stampRow}>
+            {isCheapest ? (
+              <View style={[styles.stamp, styles.stampCheapest]}>
+                <Text style={styles.stampText}>★ CHEAPEST</Text>
+              </View>
+            ) : null}
+            {isClosest ? (
+              <View style={[styles.stamp, styles.stampClosest]}>
+                <Text style={[styles.stampText, styles.stampTextClosest]}>
+                  ⌖ CLOSEST
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        ) : null}
+
+        <View style={styles.row}>
+          <View style={styles.left}>
+            <Text style={styles.brand} numberOfLines={1}>
+              {(station.brand ?? station.name).toUpperCase()}
+            </Text>
+            {station.brand && station.brand !== station.name ? (
+              <Text style={styles.subname} numberOfLines={1}>
+                {station.name.toLowerCase()}
+              </Text>
+            ) : null}
+            <Text style={styles.address} numberOfLines={1}>
+              {station.address.toLowerCase()}
+            </Text>
+            <View style={styles.metaRow}>
+              <Text style={styles.metaPrimary}>
+                {formatDistance(station.distance_meters)}
+              </Text>
+              <Text style={styles.metaDot}>·</Text>
+              <Text style={styles.meta}>{sourceLabel(station.source_kind)}</Text>
+              {staleLabel(station.observed_at) ? (
+                <>
+                  <Text style={styles.metaDot}>·</Text>
+                  <Text style={[styles.meta, styles.metaStale]}>
+                    {staleLabel(station.observed_at)}
+                  </Text>
+                </>
+              ) : null}
+              {favorited ? (
+                <>
+                  <Text style={styles.metaDot}>·</Text>
+                  <Text style={styles.metaFav}>♡ saved</Text>
+                </>
+              ) : null}
+            </View>
+          </View>
+
+          <View style={styles.right}>
+            <View style={styles.pumpDisplay}>
+              <Text style={styles.priceWhole}>
+                {Math.floor(station.price_cents / 100)}
+              </Text>
+              <Text style={styles.priceDot}>.</Text>
+              <Text style={styles.priceFraction}>
+                {(station.price_cents % 100).toString().padStart(2, '0')}
+              </Text>
+            </View>
+            <Text style={styles.octaneTag}>{station.octane} OCTANE</Text>
+          </View>
+        </View>
+      </Pressable>
+    </Link>
+  );
+}
+
+function sourceLabel(kind: StationWithPrice['source_kind']): string {
+  switch (kind) {
+    case 'scrape':
+      return 'auto';
+    case 'crowd':
+      return 'reported';
+    case 'official':
+      return 'verified';
+  }
+}
+
+function staleLabel(observedAt: string): string | null {
+  const then = new Date(observedAt).getTime();
+  if (Number.isNaN(then)) return null;
+  const hours = (Date.now() - then) / 3_600_000;
+  if (hours < 24) return null;
+  const days = Math.round(hours / 24);
+  if (days < 7) return `${days}d old`;
+  const weeks = Math.round(days / 7);
+  return `${weeks}w old`;
+}
+
+// Use the otherwise-unused `formatPriceCents` import on purpose — keeps the
+// price formatter discoverable if a future variant of the card wants the
+// "$3.79" form back.
+void formatPriceCents;
+
+const styles = StyleSheet.create({
+  card: {
+    marginHorizontal: space.lg,
+    marginVertical: space.sm,
+    paddingHorizontal: space.lg,
+    paddingVertical: space.lg,
+    backgroundColor: colors.paper,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    borderColor: colors.paperEdge,
+    ...shadow.card,
+  },
+  cardCheapest: {
+    borderColor: colors.rust,
+    borderWidth: 1.5,
+  },
+  cardPressed: { opacity: 0.85 },
+  stampRow: {
+    position: 'absolute',
+    top: -10,
+    left: 14,
+    flexDirection: 'row',
+    gap: 6,
+  },
+  stamp: {
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+    borderRadius: 4,
+    ...shadow.panel,
+  },
+  stampCheapest: {
+    backgroundColor: colors.rust,
+    transform: [{ rotate: '-3deg' }],
+  },
+  stampClosest: {
+    backgroundColor: colors.amber,
+    transform: [{ rotate: '2deg' }],
+  },
+  stampText: {
+    fontFamily: fonts.bodyBold,
+    color: colors.paper,
+    fontSize: 10,
+    letterSpacing: 1.5,
+  },
+  stampTextClosest: {
+    color: colors.ink,
+  },
+  row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
+  left: { flex: 1 },
+  brand: {
+    fontFamily: fonts.display,
+    fontSize: 20,
+    color: colors.ink,
+    letterSpacing: 1,
+  },
+  subname: {
+    fontFamily: fonts.bodyItalic,
+    fontSize: 12,
+    color: colors.inkSoft,
+    marginTop: 1,
+  },
+  address: {
+    fontFamily: fonts.body,
+    fontSize: 13,
+    color: colors.inkSoft,
+    marginTop: 4,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    marginTop: 8,
+  },
+  metaPrimary: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 12,
+    color: colors.rust,
+    letterSpacing: 0.4,
+  },
+  meta: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkSoft,
+  },
+  metaStale: { color: colors.amberDark },
+  metaFav: {
+    fontFamily: fonts.bodyMedium,
+    fontSize: 12,
+    color: colors.rust,
+  },
+  metaDot: {
+    fontFamily: fonts.body,
+    fontSize: 12,
+    color: colors.inkFaint,
+    marginHorizontal: 6,
+  },
+  right: { alignItems: 'flex-end', minWidth: 96 },
+  pumpDisplay: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    backgroundColor: colors.ink,
+    paddingHorizontal: 10,
+    paddingTop: 6,
+    paddingBottom: 4,
+    borderRadius: 6,
+  },
+  priceWhole: {
+    fontFamily: fonts.priceHeavy,
+    fontSize: 22,
+    color: colors.amber,
+    lineHeight: 24,
+  },
+  priceDot: {
+    fontFamily: fonts.priceHeavy,
+    fontSize: 22,
+    color: colors.amber,
+    lineHeight: 24,
+    marginHorizontal: 1,
+  },
+  priceFraction: {
+    fontFamily: fonts.priceHeavy,
+    fontSize: 16,
+    color: colors.amber,
+    lineHeight: 24,
+    marginBottom: 1,
+  },
+  octaneTag: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 9,
+    color: colors.inkFaint,
+    letterSpacing: 1.5,
+    marginTop: 6,
+  },
+});

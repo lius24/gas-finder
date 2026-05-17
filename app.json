@@ -9,9 +9,27 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "config": {
+        "googleMapsApiKey": "REPLACE_IN_EAS_OR_LOCAL_ENV"
+      },
+      "infoPlist": {
+        "NSLocationWhenInUseUsageDescription": "We use your location to find the nearest gas stations and their prices.",
+        "NSCameraUsageDescription": "We use the camera so you can snap a photo of a gas-station price sign and report prices.",
+        "NSPhotoLibraryUsageDescription": "Optional — used if you choose to attach an existing photo to a price report."
+      }
     },
     "android": {
+      "config": {
+        "googleMaps": {
+          "apiKey": "REPLACE_IN_EAS_OR_LOCAL_ENV"
+        }
+      },
+      "permissions": [
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION",
+        "CAMERA"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -38,7 +56,21 @@
             "backgroundColor": "#000000"
           }
         }
-      ]
+      ],
+      "expo-secure-store",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Allow $(PRODUCT_NAME) to use your location to find nearby gas stations."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow $(PRODUCT_NAME) to access your camera to photograph price signs."
+        }
+      ],
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,

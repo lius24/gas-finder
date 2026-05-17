@@ -1,0 +1,48 @@
+project_id = "gas-finder"
+
+[api]
+port = 54321
+schemas = ["public", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+port = 54323
+
+[storage]
+file_size_limit = "10MiB"
+
+[auth]
+site_url = "http://localhost:8081"
+additional_redirect_urls = ["gasfinder://"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[functions.nearby]
+verify_jwt = true
+
+[functions.station]
+verify_jwt = true
+
+[functions.report]
+verify_jwt = true
+
+# Cron-triggered worker (no client JWT). Only the service-role key (bearer
+# header) should be able to invoke it; the cron job in the README sets that.
+[functions.send-price-alerts]
+verify_jwt = false
+
+# Admin-only data ingestion. Calls Google Places API (billable) so MUST stay
+# behind the service-role key — never expose to clients.
+[functions.ingest-stations]
+verify_jwt = false
