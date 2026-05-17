@@ -13,6 +13,7 @@ const VALID_SORTS: SortKey[] = ['cheapest', 'closest'];
 export const RADIUS_OPTIONS_METERS = [1609, 4828, 8047, 16093] as const;
 export type RadiusMeters = (typeof RADIUS_OPTIONS_METERS)[number];
 export const DEFAULT_RADIUS_METERS: RadiusMeters = 8047;
+export const DEFAULT_OCTANE: Octane = 87;
 
 export async function getPreferredOctane(): Promise<Octane | null> {
   const raw = await AsyncStorage.getItem(OCTANE_KEY);
