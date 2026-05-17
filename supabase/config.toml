@@ -46,3 +46,13 @@ verify_jwt = false
 # behind the service-role key — never expose to clients.
 [functions.ingest-stations]
 verify_jwt = false
+
+# Daily cron worker — refreshes Google Places fuelOptions for any station
+# inside a user's zone. Service-role only.
+[functions.refresh-prices]
+verify_jwt = false
+
+# On-demand pull-to-refresh of specific station IDs. Authed user; quota-capped
+# in the function body via price_refresh_log.
+[functions.refresh-station-prices]
+verify_jwt = true

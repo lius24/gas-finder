@@ -28,6 +28,7 @@ import { StationCard } from '@/components/station-card';
 import { useAuth } from '@/lib/auth';
 import { listFavoriteIds } from '@/lib/favorites';
 import {
+  DEFAULT_OCTANE,
   DEFAULT_RADIUS_METERS,
   getPreferredOctane,
   getPreferredRadius,
@@ -57,7 +58,7 @@ function formatLocationLabel(place: Location.LocationGeocodedAddress | null): st
 
 export default function ListScreen() {
   const { session } = useAuth();
-  const [octane, setOctane] = useState<Octane>(93);
+  const [octane, setOctane] = useState<Octane>(DEFAULT_OCTANE);
   const [radius, setRadius] = useState<RadiusMeters>(DEFAULT_RADIUS_METERS);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -75,17 +76,26 @@ export default function ListScreen() {
 
   const sortedStations = useMemo(() => {
     const copy = [...stations];
-    copy.sort((a, b) =>
-      sort === 'cheapest'
-        ? a.price_cents - b.price_cents
-        : a.distance_meters - b.distance_meters,
-    );
+    copy.sort((a, b) => {
+      if (sort === 'cheapest') {
+        const ap = a.price_cents;
+        const bp = b.price_cents;
+        if (ap === null && bp === null) return a.distance_meters - b.distance_meters;
+        if (ap === null) return 1;
+        if (bp === null) return -1;
+        return ap - bp;
+      }
+      return a.distance_meters - b.distance_meters;
+    });
     return copy;
   }, [stations, sort]);
 
   const cheapestId = useMemo(() => {
-    if (stations.length === 0) return null;
-    return stations.reduce((min, s) => (s.price_cents < min.price_cents ? s : min)).id;
+    const priced = stations.filter((s) => s.price_cents !== null);
+    if (priced.length === 0) return null;
+    return priced.reduce((min, s) =>
+      (s.price_cents as number) < (min.price_cents as number) ? s : min,
+    ).id;
   }, [stations]);
 
   const closestId = useMemo(() => {
@@ -491,7 +501,28 @@ export default function ListScreen() {
         </View>
       ) : stations.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.muted}>No stations with {octane} found nearby.</Text>
+          <Text style={styles.muted}>
+            No stations within {Math.round(radius / 1000)} km of here. Try a wider radius.
+          </Text>
+        </View>
+      ) : stations.every((s) => s.price_cents === null) ? (
+        <View style={styles.center}>
+          <Text style={styles.muted}>
+            Stations are here, but we don&apos;t have prices for {octane} octane yet.
+          </Text>
+          <Pressable
+            style={styles.linkButton}
+            onPress={async () => {
+              if (!session) return;
+              setRefreshing(true);
+              await supabase.functions.invoke('refresh-station-prices', {
+                body: { station_ids: stations.slice(0, 25).map((s) => s.id) },
+              });
+              if (coords) await fetchNearby(coords.latitude, coords.longitude, octane, radius);
+              setRefreshing(false);
+            }}>
+            <Text style={styles.linkButtonText}>Refresh prices</Text>
+          </Pressable>
         </View>
       ) : (
         <Animated.FlatList
