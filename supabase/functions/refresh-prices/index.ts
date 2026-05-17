@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
   const ids = (zoneIds ?? []).map((r: { id: string }) => r.id);
   if (ids.length === 0) {
-    return jsonResponse({ checked: 0, updated: 0, skipped: 0, demoted: 0 });
+    return jsonResponse({ checked: 0, api_calls: 0, updated: 0, skipped: 0, demoted: 0 });
   }
 
   // Fetch the demotion + place_id metadata in one go.
@@ -84,6 +84,10 @@ Deno.serve(async (req) => {
     apiCalls += 1;
     const resp = await fetchFuelOptions(s.google_place_id, apiKey);
     if ('error' in resp) {
+      await supabase
+        .from('stations')
+        .update({ places_fuel_attempts: s.places_fuel_attempts + 1 })
+        .eq('id', s.id);
       skipped += 1;
       continue;
     }
