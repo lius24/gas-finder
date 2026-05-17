@@ -99,10 +99,13 @@ Deno.serve(async (req) => {
   }
 
   // Log call up front so a runaway client can't spam.
-  await service.from('price_refresh_log').insert({
+  const { error: logErr } = await service.from('price_refresh_log').insert({
     user_id: userId,
     station_count: ids.length,
   });
+  if (logErr) {
+    return jsonResponse({ error: `quota log failed: ${logErr.message}` }, { status: 500 });
+  }
 
   // Fetch station metadata for each id.
   const { data: stations, error: stErr } = await service
@@ -112,6 +115,7 @@ Deno.serve(async (req) => {
   if (stErr) return jsonResponse({ error: stErr.message }, { status: 500 });
 
   let updated = 0;
+  let fetchedCount = 0;
   const freshPrices: {
     station_id: string;
     octane: number;
@@ -125,6 +129,7 @@ Deno.serve(async (req) => {
     longitude: number;
   }[]) {
     if (!s.google_place_id) continue;
+    fetchedCount += 1;
     const resp = await fetchFuelOptions(s.google_place_id, apiKey);
     if ('error' in resp) continue;
     const mapped = mapFuelPrices(resp.fuelOptions?.fuelPrices, s.longitude);
@@ -167,5 +172,5 @@ Deno.serve(async (req) => {
       .eq('id', s.id);
   }
 
-  return jsonResponse({ fetched: stations.length, updated, fresh_prices: freshPrices });
+  return jsonResponse({ fetched: fetchedCount, updated, fresh_prices: freshPrices });
 });
