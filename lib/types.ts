@@ -13,7 +13,7 @@ export const OCTANE_LABELS: Record<Octane, string> = {
   94: 'Sunoco Ultra',
 };
 
-export type SourceKind = 'scrape' | 'crowd' | 'official';
+export type SourceKind = 'scrape' | 'crowd' | 'official' | 'google';
 
 export type Station = {
   id: string;
@@ -26,10 +26,10 @@ export type Station = {
 };
 
 export type StationWithPrice = Station & {
-  octane: Octane;
-  price_cents: number;
-  source_kind: SourceKind;
-  observed_at: string;
+  octane: Octane | null;
+  price_cents: number | null;
+  source_kind: SourceKind | null;
+  observed_at: string | null;
   distance_meters: number;
 };
 
