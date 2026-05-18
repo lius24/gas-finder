@@ -5,9 +5,11 @@ import { jsonResponse, preflight } from '../_shared/cors.ts';
 type Body = {
   latitude: number;
   longitude: number;
-  octane: 87 | 89 | 91 | 93;
+  octane: 86 | 87 | 89 | 91 | 93 | 94;
   radius: number;
 };
+
+const VALID_OCTANES: readonly number[] = [86, 87, 89, 91, 93, 94];
 
 Deno.serve(async (req) => {
   const cors = preflight(req);
@@ -24,7 +26,7 @@ Deno.serve(async (req) => {
   if (
     typeof latitude !== 'number' ||
     typeof longitude !== 'number' ||
-    ![87, 89, 91, 93].includes(octane) ||
+    !VALID_OCTANES.includes(octane) ||
     typeof radius !== 'number' ||
     radius <= 0
   ) {
