@@ -24,6 +24,14 @@ Design doc reference: `~/.gstack/projects/gas-finder/vnerald-main-design-2026051
 - **Cons:** Workbox build pipeline (`workbox-build`) adds ~5min to deploy; SW lifecycle bugs are hard to debug; iOS Safari SW behavior differs from Chrome.
 - **Depends on / blocked by:** v1 shipped and user feedback specifically asking for offline. Don't pre-emptively build.
 
+### Sunoco Ultra 94 station tracking
+
+- **What:** Identify which specific Sunoco stations actually pump Ultra 94 (vs standard premium 93), and map their `PREMIUM` Google Places entry to octane 94 instead of 93. Likely needs a secondary data source: scrape Sunoco's own station locator, manually curate, or accept user-reported list.
+- **Why:** Google Places `fuelOptions` returns one `PREMIUM` entry per station. We can't distinguish Sunoco's standard 93 premium from their Ultra 94 specialty pump via Places alone. As of v1, the 94 tab shows nothing for Sunoco even at stations that actually pump it. Sunoco Ultra 94 drivers are a niche-within-the-niche of premium-octane buyers — losing them entirely is a wedge gap.
+- **Pros:** Restores full coverage of the premium-octane wedge; Sunoco Ultra 94 drivers can find their fuel.
+- **Cons:** Requires either scraping (brittle, may break), manual curation (doesn't scale), or community-reported (low volume pre-validation). All three are real engineering work — pre-validation it's not clear which Sunocos in the user's actual coverage area carry Ultra 94.
+- **Depends on / blocked by:** Validation gate cleared + at least one Sunoco Ultra 94 driver in the user base specifically requesting it. Document the gap in v1 empty-state copy: "94 not covered yet, see Sunoco standard premium on the 93 tab."
+
 ### Decide road-distance API integration
 
 - **What:** Evaluate whether to integrate Mapbox Directions API or Google Routing API to replace the v1 haversine × 1.3 distance approximation in the decision-math formula.
