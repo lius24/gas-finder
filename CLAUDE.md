@@ -47,6 +47,15 @@ Key routing rules:
 - Save progress → invoke `/context-save`
 - Resume context → invoke `/context-restore`
 
+## Brand-aware octane mapping
+
+`supabase/functions/_shared/places-fuel.ts` maps Google Places `fuelOptions` types to DB octane values. **Default heuristic:** PREMIUM = 93 east of longitude -100, 91 west. **Brand overrides** live in `BRAND_PREMIUM_OVERRIDE` at the top of that file — when dogfooding surfaces a brand whose actual premium octane differs from the heuristic, add the brand there. Keys MUST match the canonical brand strings in `supabase/functions/ingest-stations/index.ts:KNOWN_BRANDS` (apostrophe-sensitive, case-sensitive).
+
+Known overrides (as of 2026-05-18):
+- `Stewart's Shops` → 91 (east-coast premium, NOT 93)
+
+After adding a new override, redeploy via `supabase functions deploy refresh-prices refresh-station-prices`, then trigger a manual refresh to update existing stations.
+
 ## Project-specific conventions
 
 - **Tab labels:** route filenames in `app/(tabs)/` are technical (`index`, `map`, `upload`, `settings`); user-facing labels are **Pumps**, **Atlas**, **Report**, **Garage**. When the user says "the garage tab," they mean Settings.
