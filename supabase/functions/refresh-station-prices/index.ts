@@ -110,7 +110,7 @@ Deno.serve(async (req) => {
   // Fetch station metadata for each id.
   const { data: stations, error: stErr } = await service
     .from('stations')
-    .select('id, google_place_id, longitude')
+    .select('id, brand, google_place_id, longitude')
     .in('id', ids);
   if (stErr) return jsonResponse({ error: stErr.message }, { status: 500 });
 
@@ -125,6 +125,7 @@ Deno.serve(async (req) => {
 
   for (const s of stations as {
     id: string;
+    brand: string | null;
     google_place_id: string | null;
     longitude: number;
   }[]) {
@@ -132,7 +133,7 @@ Deno.serve(async (req) => {
     fetchedCount += 1;
     const resp = await fetchFuelOptions(s.google_place_id, apiKey);
     if ('error' in resp) continue;
-    const mapped = mapFuelPrices(resp.fuelOptions?.fuelPrices, s.longitude);
+    const mapped = mapFuelPrices(resp.fuelOptions?.fuelPrices, s.longitude, s.brand);
     if (mapped.length === 0) continue;
 
     for (const m of mapped) {

@@ -20,6 +20,7 @@ import { fetchFuelOptions, mapFuelPrices } from '../_shared/places-fuel.ts';
 
 type StationRow = {
   id: string;
+  brand: string | null;
   google_place_id: string | null;
   longitude: number;
   places_fuel_seen_at: string | null;
@@ -67,7 +68,7 @@ Deno.serve(async (req) => {
   // Fetch the demotion + place_id metadata in one go.
   const { data: stations, error: stErr } = await supabase
     .from('stations')
-    .select('id, google_place_id, longitude, places_fuel_seen_at, places_fuel_attempts')
+    .select('id, brand, google_place_id, longitude, places_fuel_seen_at, places_fuel_attempts')
     .in('id', ids);
   if (stErr) return jsonResponse({ error: stErr.message }, { status: 500 });
 
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    const mapped = mapFuelPrices(resp.fuelOptions?.fuelPrices, s.longitude);
+    const mapped = mapFuelPrices(resp.fuelOptions?.fuelPrices, s.longitude, s.brand);
     if (mapped.length === 0) {
       await supabase
         .from('stations')
