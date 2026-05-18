@@ -4,15 +4,20 @@
 // them into the `stations` table by `google_place_id`. Use to bootstrap a
 // region's data so the app actually has stations to query.
 //
-// Auth: service-role only (verify_jwt = false in config.toml). Don't expose
-// to clients — Google Places API calls cost money.
+// Auth: verify_jwt = false in config.toml — the Functions gateway only checks
+// for a project key, which is insufficient since the publishable/anon key
+// ships in the mobile app bundle. This worker additionally enforces an
+// `x-cron-secret` header against the CRON_SECRET secret so only the admin
+// (you, from your terminal) can spend Google Places budget.
 //
-// Required secret:
+// Required secrets:
 //   supabase secrets set GOOGLE_PLACES_API_KEY=...
+//   supabase secrets set CRON_SECRET=<hex>
 //
 // Invoke (covers a 5km circle around downtown Sedona):
 //   curl -X POST <project>/functions/v1/ingest-stations \
-//     -H "Authorization: Bearer <service-role-key>" \
+//     -H "Authorization: Bearer <publishable-key>" \
+//     -H "x-cron-secret: <CRON_SECRET>" \
 //     -H "Content-Type: application/json" \
 //     -d '{"latitude":34.8697,"longitude":-111.7610,"radius_m":5000}'
 //
@@ -21,7 +26,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-import { jsonResponse, preflight } from '../_shared/cors.ts';
+import { jsonResponse, preflight, requireCronSecret } from '../_shared/cors.ts';
 
 type Body = {
   latitude: number;
@@ -92,6 +97,9 @@ function detectBrand(displayName: string): string | null {
 Deno.serve(async (req) => {
   const cors = preflight(req);
   if (cors) return cors;
+
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
 
   let body: Body;
   try {

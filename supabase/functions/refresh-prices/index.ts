@@ -4,15 +4,18 @@
 // fetches Google Places fuelOptions and upserts a 'google' row into prices
 // when the upstream updateTime is newer than the latest stored row.
 //
-// Auth: verify_jwt = false. Must be reached only via service-role bearer
-// (pg_cron + pg_net) — same posture as send-price-alerts.
+// Auth: verify_jwt = false. The Functions gateway only checks for a project
+// key, so this worker additionally enforces an `x-cron-secret` header against
+// the CRON_SECRET secret — without it, anyone holding the publishable key
+// (which ships in the mobile app bundle) could spam the Google Places API
+// and drain billing. Cron jobs send the header; see supabase/README.md.
 //
 // Required secret:
 //   supabase secrets set GOOGLE_PLACES_API_KEY=...
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-import { jsonResponse, preflight } from '../_shared/cors.ts';
+import { jsonResponse, preflight, requireCronSecret } from '../_shared/cors.ts';
 import { fetchFuelOptions, mapFuelPrices } from '../_shared/places-fuel.ts';
 
 type StationRow = {
@@ -35,6 +38,9 @@ function shouldSkipDemoted(s: StationRow, nowUtc: Date): boolean {
 Deno.serve(async (req) => {
   const cors = preflight(req);
   if (cors) return cors;
+
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
 
   const apiKey = Deno.env.get('GOOGLE_PLACES_API_KEY');
   if (!apiKey) {

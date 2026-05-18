@@ -10,7 +10,7 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.4';
 
-import { jsonResponse, preflight } from '../_shared/cors.ts';
+import { jsonResponse, preflight, requireCronSecret } from '../_shared/cors.ts';
 
 type PendingAlertRow = {
   user_id: string;
@@ -87,6 +87,9 @@ async function sendBatch(messages: ExpoMessage[]): Promise<ExpoTicketResult> {
 Deno.serve(async (req) => {
   const cors = preflight(req);
   if (cors) return cors;
+
+  const denied = requireCronSecret(req);
+  if (denied) return denied;
 
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,

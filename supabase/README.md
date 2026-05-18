@@ -89,6 +89,26 @@ select * from favorites;
 select * from favorites;
 ```
 
+## CRON_SECRET (gate for `verify_jwt = false` workers)
+
+The three admin/cron workers (`send-price-alerts`, `refresh-prices`,
+`ingest-stations`) all run with `verify_jwt = false`. The Supabase Functions
+gateway only checks that a valid project key is present — and the publishable
+key ships in the mobile app bundle. Without a second check, anyone with the
+app could spam `refresh-prices` / `ingest-stations` and drain the Google
+Places billing.
+
+Each of those functions therefore additionally requires an `x-cron-secret`
+header matching the `CRON_SECRET` project secret. Set it once:
+
+```bash
+supabase secrets set CRON_SECRET=$(openssl rand -hex 32)
+```
+
+Cron jobs and curl smoke-tests below all send the header. **Rotate it any time
+the value leaks** — just re-run the `secrets set` and re-paste the new value
+into the cron snippets.
+
 ## Price alerts
 
 When a favorite has both `alert_threshold_cents` and `alert_octane` set, the
@@ -98,21 +118,24 @@ price for that (station, octane) is at or below the threshold. Each unique
 inserted atomically before any push is sent.
 
 Schedule the worker via pg_cron + pg_net (already-enabled extensions on hosted
-Supabase). Run this in the SQL editor once, swapping in your project URL and
-service-role key:
+Supabase). The bearer is the **publishable key** (`sb_publishable_…`, public-safe),
+plus the `x-cron-secret` header described above. Never put the secret key
+(`sb_secret_…`) in `cron.job` — that table is plaintext.
 
 ```sql
 select cron.schedule(
   'send-price-alerts',
-  '*/5 * * * *',
+  '*/15 * * * *',
   $job$
     select net.http_post(
       url := 'https://<your-project-ref>.supabase.co/functions/v1/send-price-alerts',
       headers := jsonb_build_object(
-        'Authorization', 'Bearer <YOUR_SERVICE_ROLE_KEY>',
-        'Content-Type', 'application/json'
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer <YOUR_PUBLISHABLE_KEY>',
+        'x-cron-secret', '<YOUR_CRON_SECRET>'
       ),
-      body := '{}'::jsonb
+      body := '{}'::jsonb,
+      timeout_milliseconds := 30000
     );
   $job$
 );
@@ -126,7 +149,8 @@ To smoke-test the worker without waiting for cron:
 ```bash
 curl -X POST \
   "https://<project-ref>.supabase.co/functions/v1/send-price-alerts" \
-  -H "Authorization: Bearer <SERVICE_ROLE_KEY>"
+  -H "Authorization: Bearer <PUBLISHABLE_KEY>" \
+  -H "x-cron-secret: <CRON_SECRET>"
 # → { "scanned": N, "sent": M, "deduped": K, "invalidated": 0 }
 ```
 
@@ -149,9 +173,9 @@ the server key to "Places API (New)" only):
 supabase secrets set GOOGLE_PLACES_API_KEY=AIza...
 ```
 
-Schedule the daily worker via pg_cron + pg_net. Run this in the SQL editor
-once, swapping in your project URL and service-role key (the
-`cron.unschedule` guard makes it safe to re-run):
+Schedule the daily worker via pg_cron + pg_net. The bearer is the publishable
+key + the `x-cron-secret` header (see "CRON_SECRET" section above). The
+`cron.unschedule` guard makes it safe to re-run.
 
 ```sql
 do $$
@@ -167,10 +191,12 @@ select cron.schedule(
     select net.http_post(
       url := 'https://<your-project-ref>.supabase.co/functions/v1/refresh-prices',
       headers := jsonb_build_object(
-        'Authorization', 'Bearer <YOUR_SERVICE_ROLE_KEY>',
-        'Content-Type', 'application/json'
+        'Content-Type', 'application/json',
+        'Authorization', 'Bearer <YOUR_PUBLISHABLE_KEY>',
+        'x-cron-secret', '<YOUR_CRON_SECRET>'
       ),
-      body := '{}'::jsonb
+      body := '{}'::jsonb,
+      timeout_milliseconds := 120000
     );
   $job$
 );
@@ -191,7 +217,8 @@ To smoke-test the worker without waiting for cron:
 ```bash
 curl -X POST \
   "https://<project-ref>.supabase.co/functions/v1/refresh-prices" \
-  -H "Authorization: Bearer <SERVICE_ROLE_KEY>"
+  -H "Authorization: Bearer <PUBLISHABLE_KEY>" \
+  -H "x-cron-secret: <CRON_SECRET>"
 # → { "checked": N, "api_calls": N, "updated": M, "skipped": K, "demoted": D }
 ```
 
@@ -211,9 +238,12 @@ supabase secrets set GOOGLE_PLACES_API_KEY=AIza...
 supabase functions deploy ingest-stations
 
 # 3. Invoke for a 5km radius around downtown Sedona
+#    (x-cron-secret protects this from being called via the bundled mobile key
+#    — see "CRON_SECRET" section above)
 curl -X POST \
   "https://<project-ref>.supabase.co/functions/v1/ingest-stations" \
-  -H "Authorization: Bearer <SERVICE_ROLE_KEY>" \
+  -H "Authorization: Bearer <PUBLISHABLE_KEY>" \
+  -H "x-cron-secret: <CRON_SECRET>" \
   -H "Content-Type: application/json" \
   -d '{"latitude":34.8697,"longitude":-111.7610,"radius_m":5000}'
 # → { "found": 14, "upserted": 14, "sample": [{name, brand}, ...] }
