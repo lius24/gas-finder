@@ -51,6 +51,9 @@ type PlacesNearbyResponse = {
 // inside "Shell 76".
 const KNOWN_BRANDS = [
   'Phillips 66',
+  'Cumberland Farms',
+  'Little America',
+  'Stewart\'s Shops',
   'Circle K',
   'Costco Gas',
   'Buc-ee',
@@ -77,6 +80,9 @@ const KNOWN_BRANDS = [
   'Exxon',
   'Arco',
   'Wawa',
+  'Fry\'s',
+  'Gulf',
+  'ampm',
   'BP',
   '76',
 ];
