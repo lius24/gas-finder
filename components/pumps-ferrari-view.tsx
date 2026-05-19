@@ -1,11 +1,7 @@
-// Ferrari "Edizione Corsa" layout for the Pumps tab — cinematic near-
-// black canvas, modest-weight italic display titles, Rosso Corsa as
-// scarce voltage, a top telemetry strip, and a grid of dark cards with
-// Rosso accents on the cheapest pump. Ports preview/ferrari.html into
-// React Native Web.
-//
-// Uses usePumpsData() for state + actions; no scroll-collapse animation
-// (the Desert view's hallmark worklet stays Desert-only).
+// Ferrari "Edizione Corsa" Pumps view — cinematic near-black canvas,
+// modest-weight white display type, Rosso Corsa used as scarce voltage,
+// editorial telemetry strip, dark cards with red accent on the cheapest.
+// Ports public/preview/ferrari.html into React Native Web.
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
@@ -14,8 +10,8 @@ import {
   ActivityIndicator,
   FlatList,
   Linking,
+  Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -24,22 +20,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  formatSavingsRange,
-  type AnnotatedStation,
-} from '@/lib/decision-math';
+import type { PumpsData } from '@/hooks/use-pumps-data';
+import { formatSavingsRange, type AnnotatedStation } from '@/lib/decision-math';
 import { formatDistance } from '@/lib/geo';
 import { staleLabel } from '@/lib/staleness';
 import type { Theme } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-provider';
-import type { PumpsData } from '@/hooks/use-pumps-data';
 
 export function FerrariPumpsView({ data }: { data: PumpsData }) {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
-  const { colors } = theme;
   const { width } = useWindowDimensions();
-  const columns = width >= 1024 ? 3 : width >= 700 ? 2 : 1;
+  const styles = useMemo(() => makeStyles(theme, width), [theme, width]);
+  const { colors } = theme;
+  const columns = width >= 1100 ? 3 : width >= 700 ? 2 : 1;
 
   const {
     sortedStations,
@@ -69,12 +62,11 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
     onManualRefreshPrices,
   } = data;
 
-  // Telemetry derived from the live data
+  // Telemetry — three big cinema gauges
   const tStations = stations.length;
   const tPriced = annotatedStations.filter((s) => s.price_cents !== null).length;
   const cheapestStation =
     cheapestId != null ? stations.find((s) => s.id === cheapestId) ?? null : null;
-  const baselineStation = annotatedStations.find((s) => s.isBaseline) ?? null;
   const cheapestPriceLabel =
     cheapestStation?.price_cents != null
       ? `$${(cheapestStation.price_cents / 100).toFixed(2)}`
@@ -86,12 +78,13 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
       Math.abs(topSavings.centralDollars).toFixed(2)
     : '—';
 
-  const renderStation = ({ item }: { item: AnnotatedStation }) => {
+  const renderStation = ({ item, index }: { item: AnnotatedStation; index: number }) => {
     const isCheapest = item.id === cheapestId;
     const isClosest = item.id === closestId;
     const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
     const positive = item.savings ? item.savings.centralDollars > 0 : false;
     const stale = staleLabel(item.observed_at);
+    const rank = (index + 1).toString().padStart(2, '0');
     return (
       <Link
         href={{
@@ -104,19 +97,33 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
             styles.card,
             isCheapest && styles.cardCheapest,
             pressed && styles.cardPressed,
-            { flex: 1 / columns, margin: 6 },
+            columns > 1 && { flex: 1 / columns, marginHorizontal: 6 },
           ]}>
-          <View style={styles.cardHead}>
+          <View style={styles.cardTop}>
             <Text style={styles.cardRank}>
-              {isCheapest ? '01 · CHEAPEST' : isClosest ? '⌖ CLOSEST · BASELINE' : ''}
+              <Text style={[styles.cardRankNum, isCheapest && styles.cardRankNumCheapest]}>
+                {rank}
+              </Text>
+              {isCheapest ? '  ·  CHEAPEST' : isClosest ? '  ·  BASELINE' : ''}
             </Text>
+            {isCheapest ? (
+              <View style={styles.cardChip}>
+                <Text style={styles.cardChipText}>★ BEST PRICE</Text>
+              </View>
+            ) : isClosest ? (
+              <View style={[styles.cardChip, styles.cardChipClosest]}>
+                <Text style={styles.cardChipText}>⌖ CLOSEST</Text>
+              </View>
+            ) : null}
           </View>
+
           <Text style={styles.cardBrand} numberOfLines={1}>
-            {(item.brand ?? item.name).toUpperCase()}
+            {item.brand ?? item.name}
           </Text>
           <Text style={styles.cardAddr} numberOfLines={1}>
-            {item.address.toLowerCase()}
+            {item.address}
           </Text>
+
           <View style={styles.cardMeta}>
             <Text style={styles.cardMetaText}>{formatDistance(item.distance_meters)}</Text>
             <View style={styles.cardMetaDot} />
@@ -141,7 +148,7 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
               <Text style={styles.cardPriceEmpty}>—.—</Text>
             )}
             <View style={styles.cardOctRight}>
-              <Text style={styles.cardOctNum}>{item.octane ?? ''}</Text>
+              <Text style={styles.cardOctNum}>{item.octane ?? '—'}</Text>
               <Text style={styles.cardOctLabel}>OCTANE</Text>
             </View>
           </View>
@@ -155,13 +162,13 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
                 ]}>
                 {positive ? 'SAVE' : 'COSTS'}
               </Text>
-              <Text style={styles.savingsAmt}>
+              <Text style={styles.savingsAmt} numberOfLines={1}>
                 {savingsText
                   .replace('Save ', '')
                   .replace('Costs ', '')
-                  .replace(' extra', ' extra / fill-up')
-                  .replace(/^\$/, '$')}
+                  .replace(' extra', ' extra')}
               </Text>
+              <Text style={styles.savingsGo}>DIRECTIONS →</Text>
             </View>
           ) : null}
         </Pressable>
@@ -171,12 +178,6 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.tricolor}>
-        <View style={[styles.tricolorBand, { backgroundColor: '#0066b1' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#1c69d4' }]} />
-        <View style={[styles.tricolorBand, { backgroundColor: '#e22718' }]} />
-      </View>
-
       <FlatList
         key={`grid-${columns}`}
         numColumns={columns}
@@ -189,173 +190,190 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
         onRefresh={onRefresh}
         ListHeaderComponent={
           <View style={styles.headerStack}>
-            <View style={styles.heroEyebrow}>
-              <View style={styles.heroEyebrowRule} />
-              <Text style={styles.heroEyebrowText}>
-                EDIZIONE CORSA · PREMIUM FUEL INTELLIGENCE
-              </Text>
-            </View>
-            <Text style={styles.heroTitle}>
-              A price worth{'\n'}
-              <Text style={styles.heroTitleEm}>driving</Text> for.
-            </Text>
-            <Text style={styles.heroLede}>
-              Authoritative pump-feed prices with net-savings math built in.
-              Premium pumps near you, ranked by what your tank actually costs.
-            </Text>
-
-            <View style={styles.telemetry}>
-              <View style={styles.telCell}>
-                <Text style={styles.telNum}>
-                  {tPriced}
-                  <Text style={styles.telNumUnit}> / {tStations}</Text>
+            {/* Cinema hero — radial red gradient at top-right per preview */}
+            <View style={styles.cinema}>
+              <View style={styles.heroEyebrow}>
+                <View style={styles.heroEyebrowRule} />
+                <Text style={styles.heroEyebrowText}>
+                  EDIZIONE CORSA · PREMIUM FUEL INTELLIGENCE
                 </Text>
-                <Text style={styles.telLabel}>STATIONS WITH PREMIUM</Text>
               </View>
-              <View style={styles.telCell}>
-                <Text style={[styles.telNum, styles.telNumAccent]}>{cheapestPriceLabel}</Text>
-                <Text style={styles.telLabel}>CHEAPEST · {radiusMiLabel(radius)} MI</Text>
-              </View>
-              <View style={styles.telCell}>
-                <Text style={styles.telNum}>{topSavingsLabel}</Text>
-                <Text style={styles.telLabel}>TOP NET SAVINGS vs CLOSEST</Text>
+              <Text style={styles.heroTitle}>
+                Find a price{'\n'}worth <Text style={styles.heroTitleEm}>driving</Text> for.
+              </Text>
+              <Text style={styles.heroLede}>
+                Authoritative, pump-feed octane prices with net-savings math built in.
+                Premium pumps near you, ranked by what your tank actually costs.
+              </Text>
+
+              {/* Telemetry — three cinema gauges */}
+              <View style={styles.telemetry}>
+                <View style={styles.telCell}>
+                  <Text style={styles.telNum}>
+                    {tPriced}
+                    <Text style={styles.telNumUnit}>/{tStations}</Text>
+                  </Text>
+                  <Text style={styles.telLabel}>STATIONS WITH PREMIUM</Text>
+                </View>
+                <View style={[styles.telCell, styles.telCellMid]}>
+                  <Text style={[styles.telNum, styles.telNumAccent]}>{cheapestPriceLabel}</Text>
+                  <Text style={styles.telLabel}>CHEAPEST · {radiusMiLabel(radius)} MI</Text>
+                </View>
+                <View style={[styles.telCell, styles.telCellLast]}>
+                  <Text style={styles.telNum}>{topSavingsLabel}</Text>
+                  <Text style={styles.telLabel}>TOP NET SAVINGS</Text>
+                </View>
               </View>
             </View>
 
             {/* Location pill */}
-            <Pressable
-              onPress={applyCurrentLocation}
-              style={({ pressed }) => [styles.locPill, pressed && styles.pressed]}>
-              <Ionicons
-                name={usingCurrentLocation ? 'navigate' : 'location'}
-                size={14}
-                color={colors.rust}
-              />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.locLabel}>
-                  {usingCurrentLocation ? 'YOU ARE HERE' : 'VIEWING'}
-                </Text>
-                <Text style={styles.locValue} numberOfLines={1}>
-                  {usingCurrentLocation
-                    ? currentLocationLabel ?? 'somewhere on a road'
-                    : searchLabel ?? '—'}
+            <View style={styles.editorial}>
+              <Pressable
+                onPress={applyCurrentLocation}
+                style={({ pressed }) => [styles.locPill, pressed && styles.pressed]}>
+                <Ionicons
+                  name={usingCurrentLocation ? 'navigate' : 'location'}
+                  size={14}
+                  color={colors.rust}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.locLabel}>
+                    {usingCurrentLocation ? 'YOU ARE HERE' : 'VIEWING'}
+                  </Text>
+                  <Text style={styles.locValue} numberOfLines={1}>
+                    {usingCurrentLocation
+                      ? currentLocationLabel ?? 'somewhere on a road'
+                      : searchLabel ?? '—'}
+                  </Text>
+                </View>
+                {!usingCurrentLocation ? (
+                  <View style={styles.gpsPill}>
+                    <Text style={styles.gpsPillText}>USE GPS</Text>
+                  </View>
+                ) : null}
+              </Pressable>
+
+              {/* Search */}
+              <View style={styles.searchWrap}>
+                <Ionicons name="search" size={14} color={colors.inkFaint} />
+                <TextInput
+                  style={styles.searchInput}
+                  placeholder="search city, zip, or address"
+                  placeholderTextColor={colors.inkFaint}
+                  value={searchInput}
+                  onChangeText={setSearchInput}
+                  returnKeyType="search"
+                  onSubmitEditing={submitSearch}
+                  editable={!searching}
+                  autoCapitalize="none"
+                />
+                {searching ? <ActivityIndicator size="small" color={colors.rust} /> : null}
+              </View>
+
+              {/* Section head: title left + meta right */}
+              <View style={styles.sectionHead}>
+                <Text style={styles.sectionHeadTitle}>Premium pumps near you</Text>
+                <Text style={styles.sectionHeadMeta}>
+                  SHOWING <Text style={styles.sectionHeadMetaStrong}>{tPriced}</Text> · WITHIN{' '}
+                  <Text style={styles.sectionHeadMetaStrong}>{radiusMiLabel(radius)} MI</Text>
                 </Text>
               </View>
-              {!usingCurrentLocation ? (
-                <View style={styles.gpsPill}>
-                  <Text style={styles.gpsPillText}>USE GPS</Text>
+
+              {/* Octane bar */}
+              <View style={styles.octaneBar}>
+                {(['87', '89'] as const).map((label) => {
+                  const num = Number(label) as 87 | 89;
+                  const active = octane === num;
+                  return (
+                    <Pressable
+                      key={label}
+                      onPress={() => setOctane(num)}
+                      style={[styles.octCell, active && styles.octCellActive]}>
+                      <Text style={[styles.octNum, active && styles.octNumActive]}>{num}</Text>
+                      <Text style={[styles.octSub, active && styles.octSubActive]}>
+                        {num === 87 ? 'REG' : 'MID'}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  onPress={() => setOctane('premium')}
+                  style={[
+                    styles.octCell,
+                    styles.octCellPrem,
+                    octane === 'premium' && styles.octCellPremActive,
+                  ]}>
+                  <View style={styles.octCellPremAccent} />
+                  <Text
+                    style={[
+                      styles.octNum,
+                      styles.octNumPrem,
+                      octane === 'premium' && styles.octNumPremActive,
+                    ]}>
+                    91+
+                  </Text>
+                  <Text
+                    style={[
+                      styles.octSub,
+                      styles.octSubPrem,
+                      octane === 'premium' && styles.octSubPremActive,
+                    ]}>
+                    ANY PREMIUM
+                  </Text>
+                </Pressable>
+              </View>
+
+              {/* Sort + radius controls */}
+              <View style={styles.controlsRow}>
+                <View style={styles.controlsGroup}>
+                  <Text style={styles.controlsLabel}>SORT</Text>
+                  {(['cheapest', 'closest'] as const).map((k) => {
+                    const active = sort === k;
+                    return (
+                      <Pressable
+                        key={k}
+                        onPress={() => setSort(k)}
+                        style={[styles.pill, active && styles.pillActive]}>
+                        <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                          {k === 'cheapest' ? 'CHEAPEST' : 'CLOSEST'}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                <View style={[styles.controlsGroup, styles.controlsGroupRight]}>
+                  <Text style={styles.controlsLabel}>RADIUS</Text>
+                  {[1609, 4828, 8047, 16093].map((m) => {
+                    const active = radius === m;
+                    return (
+                      <Pressable
+                        key={m}
+                        onPress={() => setRadius(m as any)}
+                        style={[styles.pill, active && styles.pillActive]}>
+                        <Text style={[styles.pillText, active && styles.pillTextActive]}>
+                          {radiusMiLabel(m)} MI
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {loading ? (
+                <ActivityIndicator color={colors.rust} style={{ marginTop: 24 }} />
+              ) : error ? (
+                <View style={styles.errorWrap}>
+                  <Text style={styles.errorText}>{error}</Text>
+                  {error.toLowerCase().includes('permission') ? (
+                    <Pressable
+                      style={styles.errorBtn}
+                      onPress={() => Linking.openSettings()}>
+                      <Text style={styles.errorBtnText}>OPEN SETTINGS</Text>
+                    </Pressable>
+                  ) : null}
                 </View>
               ) : null}
-            </Pressable>
-
-            {/* Search */}
-            <View style={styles.searchWrap}>
-              <Ionicons name="search" size={14} color={colors.inkFaint} />
-              <TextInput
-                style={styles.searchInput}
-                placeholder="search city, zip, or address"
-                placeholderTextColor={colors.inkFaint}
-                value={searchInput}
-                onChangeText={setSearchInput}
-                returnKeyType="search"
-                onSubmitEditing={submitSearch}
-                editable={!searching}
-                autoCapitalize="none"
-              />
-              {searching ? <ActivityIndicator size="small" color={colors.rust} /> : null}
             </View>
-
-            {/* Section header */}
-            <Text style={styles.sectionHead}>Premium pumps near you</Text>
-
-            {/* Octane bar */}
-            <View style={styles.octaneBar}>
-              {(['87', '89'] as const).map((label) => {
-                const num = Number(label) as 87 | 89;
-                const active = octane === num;
-                return (
-                  <Pressable
-                    key={label}
-                    onPress={() => setOctane(num)}
-                    style={[styles.octCell, active && styles.octCellActive]}>
-                    <Text style={[styles.octNum, active && styles.octNumActive]}>{num}</Text>
-                    <Text style={[styles.octSub, active && styles.octSubActive]}>
-                      {num === 87 ? 'REG' : 'MID'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              <Pressable
-                onPress={() => setOctane('premium')}
-                style={[
-                  styles.octCell,
-                  styles.octCellPrem,
-                  octane === 'premium' && styles.octCellPremActive,
-                ]}>
-                <Text
-                  style={[
-                    styles.octNumPrem,
-                    octane === 'premium' && styles.octNumPremActive,
-                  ]}>
-                  91+
-                </Text>
-                <Text
-                  style={[
-                    styles.octSubPrem,
-                    octane === 'premium' && styles.octSubPremActive,
-                  ]}>
-                  ANY PREM
-                </Text>
-              </Pressable>
-            </View>
-
-            {/* Sort + radius */}
-            <View style={styles.controlsRow}>
-              <Text style={styles.controlsLabel}>SORT</Text>
-              {(['cheapest', 'closest'] as const).map((k) => {
-                const active = sort === k;
-                return (
-                  <Pressable
-                    key={k}
-                    onPress={() => setSort(k)}
-                    style={[styles.pill, active && styles.pillActive]}>
-                    <Text style={[styles.pillText, active && styles.pillTextActive]}>
-                      {k === 'cheapest' ? 'CHEAPEST' : 'CLOSEST'}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              <View style={{ width: 16 }} />
-              <Text style={styles.controlsLabel}>RADIUS</Text>
-              {[1609, 4828, 8047, 16093].map((m) => {
-                const active = radius === m;
-                return (
-                  <Pressable
-                    key={m}
-                    onPress={() => setRadius(m as any)}
-                    style={[styles.pill, active && styles.pillActive]}>
-                    <Text style={[styles.pillText, active && styles.pillTextActive]}>
-                      {radiusMiLabel(m)} MI
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {loading ? (
-              <ActivityIndicator color={colors.rust} style={{ marginTop: 24 }} />
-            ) : error ? (
-              <View style={styles.errorWrap}>
-                <Text style={styles.errorText}>{error}</Text>
-                {error.toLowerCase().includes('permission') ? (
-                  <Pressable
-                    style={styles.errorBtn}
-                    onPress={() => Linking.openSettings()}>
-                    <Text style={styles.errorBtnText}>OPEN SETTINGS</Text>
-                  </Pressable>
-                ) : null}
-              </View>
-            ) : null}
           </View>
         }
         ListEmptyComponent={
@@ -378,21 +396,43 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
           ) : null
         }
         ListFooterComponent={
-          sortedStations.length > 0 ? (
-            <>
-              {hiddenUnpriced > 0 ? (
-                <Text style={styles.hiddenNote}>
-                  + {hiddenUnpriced} nearby station
-                  {hiddenUnpriced === 1 ? '' : 's'} without premium data yet
-                </Text>
-              ) : null}
+          <>
+            {sortedStations.length > 0 && hiddenUnpriced > 0 ? (
+              <Text style={styles.hiddenNote}>
+                + {hiddenUnpriced} nearby station
+                {hiddenUnpriced === 1 ? '' : 's'} without premium data yet
+              </Text>
+            ) : null}
+            {sortedStations.length > 0 ? (
               <View style={styles.livery}>
-                <Text style={styles.liveryText}>
-                  Rosso marks the moments that matter.
+                <Text style={styles.liveryTitle}>One brand voltage.</Text>
+                <Text style={styles.liverySub}>
+                  Rosso Corsa marks the moments that matter — the cheapest premium,
+                  the brand mark, the call to drive.
                 </Text>
               </View>
-            </>
-          ) : null
+            ) : null}
+
+            {/* Website footer — brand mark + link columns + copyright */}
+            <View style={styles.footer}>
+              <View style={styles.footerBrandRow}>
+                <View style={styles.footerBrand}>
+                  <View style={styles.navHorse} />
+                  <Text style={styles.footerBrandText}>PUMP · CORSA</Text>
+                </View>
+                <View style={styles.footerLinks}>
+                  <Text style={styles.footerLink}>ABOUT</Text>
+                  <Text style={styles.footerLink}>METHODOLOGY</Text>
+                  <Text style={styles.footerLink}>PRICING DATA</Text>
+                  <Text style={styles.footerLink}>PRIVACY</Text>
+                </View>
+              </View>
+              <View style={styles.footerDivider} />
+              <Text style={styles.footerCopy}>
+                © 2026 · EDIZIONE CORSA · BUILT FOR DRIVERS WHO CARE WHICH PREMIUM
+              </Text>
+            </View>
+          </>
         }
       />
     </SafeAreaView>
@@ -406,78 +446,179 @@ function radiusMiLabel(m: number): string {
   return '10';
 }
 
-function makeStyles({ colors, fonts, radius, space }: Theme) {
+function makeStyles({ colors, fonts, space }: Theme, width: number) {
+  // Responsive scaling — phone uses preview's mobile clamp floor, tablet+
+  // scales up toward the preview's max sizes.
+  const heroTitleSize = width >= 900 ? 96 : width >= 600 ? 72 : 56;
+  const heroTitleLine = Math.round(heroTitleSize * 1.02);
+  const telNumSize = width >= 900 ? 72 : width >= 600 ? 56 : 44;
+  const cardPriceSize = width >= 600 ? 56 : 48;
+  const cardBrandSize = width >= 600 ? 28 : 24;
+
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
-    tricolor: { flexDirection: 'row', height: 3 },
-    tricolorBand: { flex: 1 },
 
-    headerStack: { paddingHorizontal: space.lg, paddingTop: space.lg, paddingBottom: 16 },
+    headerStack: {},
+
+    // Brand bar — nav strip above the cinema hero
+    navBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: space.lg,
+      paddingVertical: 18,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.paperEdge,
+      backgroundColor: colors.bg,
+    },
+    navBrand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    navHorse: {
+      width: 12,
+      height: 12,
+      backgroundColor: colors.rust,
+      transform: [{ rotate: '45deg' }],
+    },
+    navBrandText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 14,
+      color: colors.ink,
+      letterSpacing: 0.5,
+    },
+    navRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    navRightText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 11,
+      color: colors.inkFaint,
+      letterSpacing: 1.2,
+    },
+    navRightDot: {
+      color: colors.inkFaint,
+      opacity: 0.4,
+      fontSize: 11,
+    },
+
+    // Cinema hero — full-bleed near-black with massive type. Mimics the
+    // preview's --super (128px) top padding via a generous paddingTop that
+    // scales down on phones. The red radial-gradient at top-right is the
+    // preview's voltage cue — RN-web passes web CSS through, so we set
+    // backgroundImage directly. Native still falls back to the solid bg.
+    cinema: {
+      paddingHorizontal: space.lg,
+      paddingTop: width >= 600 ? 72 : 40,
+      paddingBottom: width >= 600 ? 56 : 36,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.paperEdge,
+      backgroundColor: colors.bg,
+      ...(Platform.OS === 'web'
+        ? ({
+            // Two radials: warm red at the top-right (the brand voltage),
+            // a subtle white wash bottom-left (the cinema spotlight). Both
+            // sit ON TOP of the canvas color so the hero feels lit, not flat.
+            backgroundImage:
+              'radial-gradient(1200px 600px at 90% -20%, rgba(218,41,28,0.28), transparent 60%), radial-gradient(800px 500px at -10% 110%, rgba(255,255,255,0.04), transparent 60%)',
+          } as any)
+        : null),
+    },
 
     heroEyebrow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 10,
-      marginBottom: 16,
+      gap: 12,
+      marginBottom: 24,
     },
-    heroEyebrowRule: { width: 28, height: 1, backgroundColor: colors.rust },
+    heroEyebrowRule: { width: 32, height: 1, backgroundColor: colors.rust },
     heroEyebrowText: {
       fontFamily: fonts.bodyBold,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.rust,
-      letterSpacing: 1.5,
+      letterSpacing: 1.4,
     },
 
     heroTitle: {
       fontFamily: fonts.display,
-      fontSize: 52,
-      lineHeight: 54,
+      fontSize: heroTitleSize,
+      lineHeight: heroTitleLine,
       color: colors.ink,
-      letterSpacing: -1.5,
-      marginBottom: 12,
+      letterSpacing: -2.6,
+      fontWeight: '500',
+      marginBottom: 0,
     },
     heroTitleEm: {
       fontFamily: fonts.displayItalic,
+      fontStyle: 'italic',
       color: colors.inkSoft,
+      letterSpacing: -2.2,
+      fontWeight: '400',
     },
     heroLede: {
       fontFamily: fonts.body,
-      fontSize: 15,
-      lineHeight: 22,
-      color: colors.inkSoft,
-      marginBottom: 28,
-      maxWidth: 540,
+      fontSize: width >= 600 ? 18 : 16,
+      lineHeight: width >= 600 ? 28 : 24,
+      color: colors.inkFaint,
+      marginTop: 24,
+      maxWidth: 560,
     },
 
+    // Telemetry — three big numbers in cinema-gauge style
     telemetry: {
-      flexDirection: 'row',
+      flexDirection: width >= 600 ? 'row' : 'column',
       borderTopWidth: 1,
       borderBottomWidth: 1,
       borderColor: colors.paperEdge,
-      marginBottom: 24,
+      marginTop: width >= 600 ? 64 : 40,
     },
     telCell: {
       flex: 1,
-      paddingVertical: 16,
-      paddingRight: 12,
-      borderRightWidth: 1,
+      paddingVertical: width >= 600 ? 24 : 18,
+      paddingRight: width >= 600 ? 24 : 0,
+      borderRightWidth: width >= 600 ? 1 : 0,
       borderRightColor: colors.paperEdge,
+      borderBottomWidth: width >= 600 ? 0 : 1,
+      borderBottomColor: colors.paperEdge,
+    },
+    telCellMid: {
+      paddingLeft: width >= 600 ? 24 : 0,
+    },
+    telCellLast: {
+      paddingLeft: width >= 600 ? 24 : 0,
+      borderRightWidth: 0,
+      borderBottomWidth: 0,
     },
     telNum: {
       fontFamily: fonts.priceHeavy,
-      fontSize: 28,
-      letterSpacing: -1,
+      fontSize: telNumSize,
+      lineHeight: telNumSize,
+      letterSpacing: -1.6,
       color: colors.ink,
-      lineHeight: 30,
+      fontWeight: '700',
     },
     telNumAccent: { color: colors.rust },
-    telNumUnit: { color: colors.inkFaint, fontWeight: '400' },
+    telNumUnit: {
+      color: colors.inkFaint,
+      fontWeight: '300',
+      letterSpacing: -0.4,
+    },
     telLabel: {
       fontFamily: fonts.bodyBold,
-      fontSize: 9,
+      fontSize: 11,
       color: colors.inkFaint,
-      letterSpacing: 1.5,
-      marginTop: 6,
+      letterSpacing: 1.1,
+      marginTop: 16,
+    },
+
+    // Editorial wrapper — below the cinema
+    editorial: {
+      paddingHorizontal: space.lg,
+      paddingTop: width >= 600 ? 56 : 32,
+      paddingBottom: 8,
     },
 
     locPill: {
@@ -486,7 +627,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       gap: 10,
       paddingHorizontal: 14,
       paddingVertical: 12,
-      borderRadius: radius.md,
+      borderRadius: 0,
       backgroundColor: colors.paper,
       borderWidth: 1,
       borderColor: colors.paperEdge,
@@ -506,13 +647,12 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       lineHeight: 18,
     },
     gpsPill: {
-      backgroundColor: colors.displaySurface,
+      backgroundColor: colors.rust,
       paddingHorizontal: 10,
       paddingVertical: 5,
-      borderRadius: 4,
     },
     gpsPillText: {
-      color: colors.displayInk,
+      color: colors.onRust,
       fontFamily: fonts.bodyBold,
       fontSize: 10,
       letterSpacing: 1.5,
@@ -525,11 +665,10 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       gap: 8,
       paddingHorizontal: 12,
       paddingVertical: 10,
-      borderRadius: radius.md,
       backgroundColor: colors.paper,
       borderWidth: 1,
       borderColor: colors.paperEdge,
-      marginBottom: 24,
+      marginBottom: 32,
     },
     searchInput: {
       flex: 1,
@@ -538,82 +677,113 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       color: colors.ink,
     },
 
+    // Section head — title left, meta right
     sectionHead: {
-      fontFamily: fonts.display,
-      fontSize: 28,
-      letterSpacing: -0.7,
-      color: colors.ink,
-      marginBottom: 16,
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-end',
+      gap: 16,
+      marginBottom: 24,
+      flexWrap: 'wrap',
     },
+    sectionHeadTitle: {
+      fontFamily: fonts.display,
+      fontSize: width >= 600 ? 36 : 28,
+      lineHeight: width >= 600 ? 40 : 32,
+      color: colors.ink,
+      letterSpacing: -0.72,
+      fontWeight: '500',
+      flexShrink: 1,
+    },
+    sectionHeadMeta: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 11,
+      color: colors.inkFaint,
+      letterSpacing: 1.1,
+    },
+    sectionHeadMetaStrong: { color: colors.ink },
 
+    // Octane bar — full-width segmented, premium gets red side-accent
     octaneBar: {
       flexDirection: 'row',
       borderTopWidth: 1,
       borderBottomWidth: 1,
       borderColor: colors.paperEdge,
-      marginBottom: 16,
+      marginBottom: 24,
     },
     octCell: {
       flex: 1,
-      paddingVertical: 14,
+      paddingVertical: 20,
+      paddingHorizontal: 8,
       alignItems: 'center',
       borderRightWidth: 1,
       borderRightColor: colors.paperEdge,
     },
-    octCellActive: { backgroundColor: colors.displaySurface },
+    octCellActive: { backgroundColor: colors.ink },
     octNum: {
       fontFamily: fonts.priceHeavy,
-      fontSize: 22,
-      color: colors.inkSoft,
+      fontSize: 28,
+      lineHeight: 28,
+      color: colors.inkFaint,
+      letterSpacing: -0.5,
+      fontWeight: '700',
     },
-    octNumActive: { color: colors.displayInk },
+    octNumActive: { color: colors.bg },
     octSub: {
       fontFamily: fonts.bodyBold,
-      fontSize: 9,
+      fontSize: 10,
       color: colors.inkFaint,
-      letterSpacing: 1.5,
-      marginTop: 3,
+      letterSpacing: 1.1,
+      marginTop: 6,
     },
-    octSubActive: { color: colors.displayInk, opacity: 0.85 },
+    octSubActive: { color: colors.bg, opacity: 0.55 },
 
     octCellPrem: {
       flex: 1.4,
-      backgroundColor: colors.paper,
-      borderLeftWidth: 3,
-      borderLeftColor: colors.rust,
       borderRightWidth: 0,
+      position: 'relative',
     },
-    octCellPremActive: { backgroundColor: colors.rust, borderLeftColor: colors.rust },
-    octNumPrem: {
-      fontFamily: fonts.priceHeavy,
-      fontSize: 22,
-      color: colors.rust,
+    octCellPremActive: { backgroundColor: colors.rust },
+    octCellPremAccent: {
+      position: 'absolute',
+      left: 0,
+      top: 0,
+      bottom: 0,
+      width: 3,
+      backgroundColor: colors.rust,
     },
-    octNumPremActive: { color: colors.onRust },
-    octSubPrem: {
-      fontFamily: fonts.bodyBold,
-      fontSize: 9,
-      color: colors.rust,
-      letterSpacing: 1.5,
-      marginTop: 3,
-    },
-    octSubPremActive: { color: colors.onRust, opacity: 0.92 },
+    octNumPrem: { color: colors.rust },
+    octNumPremActive: { color: colors.ink },
+    octSubPrem: { color: colors.rust, opacity: 0.95 },
+    octSubPremActive: { color: colors.ink, opacity: 0.85 },
 
+    // Controls — sort left, radius right
     controlsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      flexWrap: 'wrap',
+      gap: 16,
+      paddingBottom: 24,
       marginBottom: 24,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.paperEdge,
+    },
+    controlsGroup: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
       flexWrap: 'wrap',
     },
+    controlsGroupRight: width >= 600 ? { marginLeft: 'auto' } : {},
     controlsLabel: {
       fontFamily: fonts.bodyBold,
-      fontSize: 9,
+      fontSize: 11,
       color: colors.inkFaint,
-      letterSpacing: 1.5,
+      letterSpacing: 1.1,
+      marginRight: 4,
     },
     pill: {
-      paddingHorizontal: 12,
+      paddingHorizontal: 16,
       paddingVertical: 8,
       borderWidth: 1,
       borderColor: colors.paperEdge,
@@ -622,60 +792,81 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     pillActive: { backgroundColor: colors.ink, borderColor: colors.ink },
     pillText: {
       fontFamily: fonts.bodyBold,
-      fontSize: 10,
-      color: colors.inkSoft,
+      fontSize: 12,
+      color: colors.inkFaint,
       letterSpacing: 1.4,
     },
     pillTextActive: { color: colors.bg },
 
-    list: { paddingHorizontal: space.sm, paddingBottom: space.xxl },
+    // Stations list — cinema cards
+    list: { paddingHorizontal: width >= 600 ? space.sm : 0, paddingBottom: space.xxl },
     columnWrap: { gap: 0 },
 
     card: {
-      backgroundColor: colors.paper,
+      backgroundColor: '#1f1f1f',
       borderWidth: 1,
       borderColor: colors.paperEdge,
-      padding: 18,
-      gap: 6,
-      minHeight: 220,
+      padding: 24,
+      gap: 12,
+      marginBottom: 16,
+      marginHorizontal: width >= 600 ? 6 : space.lg,
     },
-    cardCheapest: { borderColor: colors.rust, borderWidth: 1.5 },
+    cardCheapest: { borderColor: colors.rust },
     cardPressed: { opacity: 0.85 },
 
-    cardHead: { minHeight: 14 },
+    cardTop: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: 8,
+    },
     cardRank: {
       fontFamily: fonts.bodyBold,
-      fontSize: 9,
-      color: colors.rust,
-      letterSpacing: 1.5,
+      fontSize: 12,
+      color: colors.inkFaint,
+      letterSpacing: 1.4,
+    },
+    cardRankNum: { color: colors.ink },
+    cardRankNumCheapest: { color: colors.rust },
+    cardChip: {
+      paddingHorizontal: 9,
+      paddingVertical: 5,
+      backgroundColor: colors.rust,
+    },
+    cardChipClosest: { backgroundColor: colors.paperEdge },
+    cardChipText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      color: colors.onRust,
+      letterSpacing: 1.4,
     },
 
     cardBrand: {
       fontFamily: fonts.display,
-      fontSize: 22,
+      fontSize: cardBrandSize,
+      lineHeight: cardBrandSize * 1.1,
       color: colors.ink,
-      letterSpacing: -0.4,
-      lineHeight: 24,
+      letterSpacing: -0.56,
+      fontWeight: '500',
     },
     cardAddr: {
       fontFamily: fonts.body,
       fontSize: 13,
-      color: colors.inkSoft,
+      color: colors.inkFaint,
     },
     cardMeta: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 8,
       flexWrap: 'wrap',
-      marginTop: 4,
     },
     cardMetaText: {
       fontFamily: fonts.bodyBold,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.inkFaint,
-      letterSpacing: 1,
+      letterSpacing: 1.1,
     },
-    cardMetaStale: { color: colors.amberDark },
+    cardMetaStale: { color: '#f4b400' },
     cardMetaDot: {
       width: 3,
       height: 3,
@@ -689,90 +880,165 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       justifyContent: 'space-between',
       borderTopWidth: 1,
       borderTopColor: colors.paperEdge,
-      paddingTop: 12,
-      marginTop: 8,
+      paddingTop: 16,
+      marginTop: 4,
     },
     cardPrice: {
       fontFamily: fonts.priceHeavy,
-      fontSize: 36,
+      fontSize: cardPriceSize,
+      lineHeight: cardPriceSize * 0.95,
       color: colors.ink,
-      letterSpacing: -1.2,
-      lineHeight: 36,
+      letterSpacing: -1.6,
+      fontWeight: '700',
     },
-    cardPriceFrac: { fontSize: 22, color: colors.inkSoft },
+    cardPriceFrac: { fontSize: cardPriceSize / 2, color: colors.inkFaint },
     cardPriceEmpty: {
       fontFamily: fonts.priceHeavy,
-      fontSize: 24,
+      fontSize: 28,
       color: colors.inkFaint,
       letterSpacing: 1,
     },
     cardOctRight: { alignItems: 'flex-end' },
     cardOctNum: {
       fontFamily: fonts.priceHeavy,
-      fontSize: 18,
+      fontSize: 22,
       color: colors.rust,
-      letterSpacing: -0.3,
+      letterSpacing: -0.4,
+      fontWeight: '700',
     },
     cardOctLabel: {
       fontFamily: fonts.bodyBold,
-      fontSize: 8,
+      fontSize: 10,
       color: colors.inkFaint,
-      letterSpacing: 1.2,
+      letterSpacing: 1.1,
       marginTop: 2,
     },
 
     savingsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 8,
+      gap: 12,
       borderTopWidth: 1,
       borderTopColor: colors.paperEdge,
-      paddingTop: 10,
-      marginTop: 8,
+      paddingTop: 16,
+      marginTop: 4,
       flexWrap: 'wrap',
     },
     savingsVerb: {
       fontFamily: fonts.bodyBold,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.good,
-      letterSpacing: 1.5,
+      letterSpacing: 1.4,
     },
     savingsVerbCost: { color: colors.danger },
     savingsAmt: {
-      fontFamily: fonts.numeral,
-      fontSize: 12,
-      color: colors.inkSoft,
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.ink,
+      flex: 1,
+    },
+    savingsGo: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 11,
+      color: colors.ink,
+      letterSpacing: 1.4,
     },
 
     hiddenNote: {
-      fontFamily: fonts.bodyItalic,
-      fontSize: 12,
+      fontFamily: fonts.body,
+      fontSize: 13,
       color: colors.inkFaint,
       textAlign: 'center',
+      fontStyle: 'italic',
       marginTop: 24,
-      marginBottom: 12,
+      marginBottom: 24,
+      paddingHorizontal: space.lg,
     },
+
+    // Livery — the brand's voltage moment
     livery: {
       backgroundColor: colors.rust,
-      paddingVertical: 24,
+      paddingVertical: width >= 600 ? 56 : 40,
       paddingHorizontal: space.lg,
       alignItems: 'center',
       marginTop: 16,
     },
-    liveryText: {
-      fontFamily: fonts.displayItalic,
+    liveryTitle: {
+      fontFamily: fonts.display,
+      fontSize: width >= 600 ? 32 : 26,
+      lineHeight: width >= 600 ? 36 : 30,
+      color: colors.onRust,
+      letterSpacing: -0.64,
+      fontWeight: '500',
+      textAlign: 'center',
+    },
+    liverySub: {
+      fontFamily: fonts.body,
       fontSize: 14,
       color: colors.onRust,
-      letterSpacing: 0,
+      opacity: 0.92,
       textAlign: 'center',
+      marginTop: 8,
+      maxWidth: 480,
+    },
+
+    // Website footer — brand row + link columns + copyright
+    footer: {
+      paddingHorizontal: space.lg,
+      paddingTop: width >= 600 ? 64 : 48,
+      paddingBottom: 32,
+      borderTopWidth: 1,
+      borderTopColor: colors.paperEdge,
+      backgroundColor: colors.bg,
+    },
+    footerBrandRow: {
+      flexDirection: width >= 700 ? 'row' : 'column',
+      justifyContent: 'space-between',
+      alignItems: width >= 700 ? 'center' : 'flex-start',
+      gap: 24,
+    },
+    footerBrand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+    },
+    footerBrandText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 16,
+      color: colors.ink,
+      letterSpacing: 0.5,
+    },
+    footerLinks: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 24,
+    },
+    footerLink: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 11,
+      color: colors.inkFaint,
+      letterSpacing: 1.2,
+    },
+    footerDivider: {
+      height: 1,
+      backgroundColor: colors.paperEdge,
+      marginTop: 32,
+      marginBottom: 16,
+    },
+    footerCopy: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 11,
+      color: colors.inkFaint,
+      letterSpacing: 1.2,
     },
 
     emptyWrap: { padding: 40, alignItems: 'center', gap: 12 },
     emptyText: {
-      fontFamily: fonts.bodyItalic,
+      fontFamily: fonts.body,
       fontSize: 14,
       color: colors.inkFaint,
       textAlign: 'center',
+      fontStyle: 'italic',
     },
     errorWrap: { padding: 24, alignItems: 'center', gap: 12 },
     errorText: {
@@ -794,6 +1060,3 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     },
   });
 }
-
-// Suppress unused-import warning on ScrollView/columns when grid is single-col.
-void ScrollView;

@@ -1,7 +1,7 @@
-// Airtable "Editorial" layout for the Pumps tab — white canvas, sober
-// Archivo grotesk type, voltage from full-bleed signature-color station
-// cards in coral/forest/cream/peach/mustard/mint rotation. Ports
-// preview/airtable.html into React Native Web.
+// Airtable "Editorial" Pumps view — sober white canvas, modest Archivo
+// grotesk type, brand voltage from signature-colored full-bleed cards
+// (coral / forest / cream / peach / mustard / mint). Near-black pill
+// CTAs. Ports public/preview/airtable.html into React Native Web.
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
@@ -10,39 +10,110 @@ import {
   ActivityIndicator,
   FlatList,
   Linking,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import {
-  formatSavingsRange,
-  type AnnotatedStation,
-} from '@/lib/decision-math';
+import type { PumpsData } from '@/hooks/use-pumps-data';
+import { formatSavingsRange, type AnnotatedStation } from '@/lib/decision-math';
 import { formatDistance } from '@/lib/geo';
 import { staleLabel } from '@/lib/staleness';
 import type { Theme } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-provider';
-import type { PumpsData } from '@/hooks/use-pumps-data';
 
 // Signature color rotation — each station card gets one. Mirrors the
 // Airtable signature palette (coral / forest / cream / peach / mustard /
-// mint) and cycles by rank.
-const COLOR_ROTATION = [
-  { bg: '#aa2d00', fg: '#ffffff', kicker: 'rgba(255,255,255,0.85)' }, // coral
-  { bg: '#0a2e0e', fg: '#ffffff', kicker: 'rgba(255,255,255,0.85)' }, // forest
-  { bg: '#f5e9d4', fg: '#181d26', kicker: '#5a606b' }, // cream (light)
-  { bg: '#fcab79', fg: '#181d26', kicker: '#333840' }, // peach (light)
-  { bg: '#d9a441', fg: '#181d26', kicker: '#333840' }, // mustard (light)
-  { bg: '#a8d8c4', fg: '#181d26', kicker: '#333840' }, // mint (light)
+// mint) and cycles by rank. The "dark" flag drives white-on-dark vs
+// ink-on-light variants so the Directions CTA + savings tag stay legible.
+type Palette = {
+  bg: string;
+  fg: string;
+  kicker: string;
+  ctaBg: string;
+  ctaFg: string;
+  tagBg: string;
+  hairline: string;
+  dark: boolean;
+};
+const COLOR_ROTATION: Palette[] = [
+  // 01 coral — cheapest
+  {
+    bg: '#aa2d00',
+    fg: '#ffffff',
+    kicker: 'rgba(255,255,255,0.85)',
+    ctaBg: 'rgba(255,255,255,0.95)',
+    ctaFg: '#181d26',
+    tagBg: 'rgba(255,255,255,0.18)',
+    hairline: 'rgba(255,255,255,0.22)',
+    dark: true,
+  },
+  // 02 forest
+  {
+    bg: '#0a2e0e',
+    fg: '#ffffff',
+    kicker: 'rgba(255,255,255,0.85)',
+    ctaBg: 'rgba(255,255,255,0.95)',
+    ctaFg: '#181d26',
+    tagBg: 'rgba(255,255,255,0.18)',
+    hairline: 'rgba(255,255,255,0.22)',
+    dark: true,
+  },
+  // 03 cream — typically the baseline
+  {
+    bg: '#f5e9d4',
+    fg: '#181d26',
+    kicker: '#5a606b',
+    ctaBg: '#181d26',
+    ctaFg: '#ffffff',
+    tagBg: 'rgba(0,0,0,0.08)',
+    hairline: 'rgba(0,0,0,0.12)',
+    dark: false,
+  },
+  // 04 peach
+  {
+    bg: '#fcab79',
+    fg: '#181d26',
+    kicker: '#333840',
+    ctaBg: '#181d26',
+    ctaFg: '#ffffff',
+    tagBg: 'rgba(0,0,0,0.1)',
+    hairline: 'rgba(0,0,0,0.12)',
+    dark: false,
+  },
+  // 05 mustard
+  {
+    bg: '#d9a441',
+    fg: '#181d26',
+    kicker: '#333840',
+    ctaBg: '#181d26',
+    ctaFg: '#ffffff',
+    tagBg: 'rgba(0,0,0,0.1)',
+    hairline: 'rgba(0,0,0,0.14)',
+    dark: false,
+  },
+  // 06 mint
+  {
+    bg: '#a8d8c4',
+    fg: '#181d26',
+    kicker: '#333840',
+    ctaBg: '#181d26',
+    ctaFg: '#ffffff',
+    tagBg: 'rgba(0,0,0,0.1)',
+    hairline: 'rgba(0,0,0,0.12)',
+    dark: false,
+  },
 ];
 
 export function AirtablePumpsView({ data }: { data: PumpsData }) {
   const theme = useTheme();
-  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const { width } = useWindowDimensions();
+  const styles = useMemo(() => makeStyles(theme, width), [theme, width]);
   const { colors } = theme;
 
   const {
@@ -79,6 +150,13 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
     const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
     const positive = item.savings ? item.savings.centralDollars > 0 : false;
     const stale = staleLabel(item.observed_at);
+    const rank = (index + 1).toString().padStart(2, '0');
+
+    const kickerText = isCheapest
+      ? '★ Cheapest premium · 5 mi radius'
+      : isClosest
+        ? `${rank} · ⌖ closest · baseline`
+        : `${rank} · ${item.brand ?? item.name}`;
 
     return (
       <Link
@@ -93,52 +171,62 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
             { backgroundColor: palette.bg },
             pressed && styles.featurePressed,
           ]}>
-          <View style={styles.featureLeft}>
-            <Text style={[styles.featureKicker, { color: palette.kicker }]}>
-              {isCheapest
-                ? '★ Cheapest premium'
-                : isClosest
-                  ? '⌖ Closest · baseline'
-                  : `0${index + 1}`}
-            </Text>
-            <Text style={[styles.featureBrand, { color: palette.fg }]} numberOfLines={2}>
-              {item.brand ?? item.name}
-            </Text>
-            <Text
-              style={[styles.featureAddr, { color: palette.fg, opacity: 0.85 }]}
-              numberOfLines={1}>
-              {item.address} · {formatDistance(item.distance_meters)}
-            </Text>
-            <Text
-              style={[styles.featureMeta, { color: palette.kicker }]}
-              numberOfLines={1}>
-              {item.source_kind === 'google' ? 'Live · Google Places' : 'Reported'}
-              {stale ? ` · ${stale}` : ''}
-            </Text>
-          </View>
-          <View style={styles.featureRight}>
-            {item.price_cents !== null ? (
-              <Text style={[styles.featurePrice, { color: palette.fg }]}>
-                ${Math.floor(item.price_cents / 100)}.
-                <Text style={[styles.featurePriceFrac, { color: palette.fg, opacity: 0.55 }]}>
-                  {(item.price_cents % 100).toString().padStart(2, '0')}
+          {/* Top row: brand / address  |  price block */}
+          <View style={styles.featureBody}>
+            <View style={styles.featureLeft}>
+              <Text style={[styles.featureKicker, { color: palette.kicker }]} numberOfLines={1}>
+                {kickerText}
+              </Text>
+              <Text style={[styles.featureBrand, { color: palette.fg }]} numberOfLines={2}>
+                {item.brand ?? item.name}
+              </Text>
+              <Text
+                style={[styles.featureAddr, { color: palette.fg, opacity: 0.85 }]}
+                numberOfLines={2}>
+                {item.address} · {formatDistance(item.distance_meters)}
+                {stale ? ` · ${stale}` : ''}
+              </Text>
+            </View>
+            <View style={styles.featureRight}>
+              {item.price_cents !== null ? (
+                <Text style={[styles.featurePrice, { color: palette.fg }]}>
+                  ${Math.floor(item.price_cents / 100)}.
+                  <Text style={[styles.featurePriceFrac, { color: palette.fg, opacity: 0.55 }]}>
+                    {(item.price_cents % 100).toString().padStart(2, '0')}
+                  </Text>
                 </Text>
+              ) : (
+                <Text style={[styles.featurePriceEmpty, { color: palette.fg, opacity: 0.55 }]}>
+                  —.—
+                </Text>
+              )}
+              <Text
+                style={[styles.featureOct, { color: palette.kicker }]}
+                numberOfLines={1}>
+                {item.octane ?? '—'} octane · Google Places
               </Text>
-            ) : (
-              <Text style={[styles.featurePriceFrac, { color: palette.fg, opacity: 0.6 }]}>
-                —.—
-              </Text>
-            )}
-            <Text style={[styles.featureOct, { color: palette.kicker }]}>
-              {item.octane ?? '—'} octane
-            </Text>
+              {item.price_cents !== null ? (
+                <View
+                  style={[styles.featureCta, { backgroundColor: palette.ctaBg }]}>
+                  <Text style={[styles.featureCtaText, { color: palette.ctaFg }]}>
+                    Directions →
+                  </Text>
+                </View>
+              ) : null}
+            </View>
           </View>
+
+          {/* Savings row — only when there's a delta worth showing */}
           {savingsText ? (
-            <View style={styles.featureSavings}>
+            <View
+              style={[
+                styles.featureSavings,
+                { borderTopColor: palette.hairline },
+              ]}>
               <View
                 style={[
                   styles.featureSavingsTag,
-                  { backgroundColor: palette.fg === '#ffffff' ? 'rgba(255,255,255,0.18)' : 'rgba(0,0,0,0.08)' },
+                  { backgroundColor: palette.tagBg },
                 ]}>
                 <Text
                   style={[
@@ -148,9 +236,19 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
                   {positive ? 'Save' : 'Costs'}{' '}
                   {savingsText
                     .replace('Save ', '')
-                    .replace('Costs ', '')}
+                    .replace('Costs ', '')
+                    .replace(' extra', ' extra')}
                 </Text>
               </View>
+              {isCheapest ? (
+                <Text
+                  style={[
+                    styles.featureSavingsHint,
+                    { color: palette.fg, opacity: 0.75 },
+                  ]}>
+                  net of drive cost vs the closest priced pump
+                </Text>
+              ) : null}
             </View>
           ) : null}
         </Pressable>
@@ -169,24 +267,89 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
         contentContainerStyle={styles.list}
         ListHeaderComponent={
           <View style={styles.headerStack}>
-            <Text style={styles.kicker}>PREMIUM FUEL · LIVE</Text>
-            <Text style={styles.hero}>
-              Find the premium pump{' '}
-              <Text style={styles.heroEm}>worth driving for.</Text>
-            </Text>
-            <Text style={styles.lede}>
-              Authoritative pump-feed prices. Net-savings math. No crowd guesses, no
-              interstitials. Six premium pumps within five miles, ranked by what your
-              tank actually costs after the drive.
-            </Text>
+            {/* Hero — title + lede on the left, station "sheet" aside on
+                the right (stacks on phones). */}
+            <View style={styles.heroGrid}>
+              <View style={styles.hero}>
+                <Text style={styles.kicker}>Premium fuel · live near you</Text>
+                <Text style={styles.heroTitle}>
+                  Find the premium pump{' '}
+                  <Text style={styles.heroTitleEm}>worth driving for.</Text>
+                </Text>
+                <Text style={styles.lede}>
+                  Authoritative pump-feed prices. Net-savings math. No crowd
+                  guesses, no interstitials. Premium pumps near you, ranked by
+                  what your tank actually costs after the drive.
+                </Text>
+              </View>
 
-            {/* Location pill */}
+              {/* Station sheet — stylized spreadsheet showing the current
+                  result set. Uses live sortedStations data. */}
+              <View style={styles.sheet}>
+                <View style={styles.sheetBar}>
+                  <View style={[styles.sheetDot, { backgroundColor: '#ff5f57' }]} />
+                  <View style={[styles.sheetDot, { backgroundColor: '#ffbd2e' }]} />
+                  <View style={[styles.sheetDot, { backgroundColor: '#28ca42' }]} />
+                  <Text style={styles.sheetFilename}>
+                    {octane === 'premium' ? 'premium' : `octane-${octane}`}-pumps · {radiusMiLabel(radius)} mi
+                  </Text>
+                </View>
+                <View style={[styles.sheetRow, styles.sheetRowHeader]}>
+                  <Text style={[styles.sheetCellIx, styles.sheetCellHeader]}>#</Text>
+                  <Text style={[styles.sheetCellName, styles.sheetCellHeader]}>Station</Text>
+                  <Text style={[styles.sheetCellMi, styles.sheetCellHeader]}>Mi</Text>
+                  <Text style={[styles.sheetCellPrice, styles.sheetCellHeader]}>Price</Text>
+                </View>
+                {sortedStations.length === 0 ? (
+                  <View style={[styles.sheetRow, styles.sheetRowEmpty]}>
+                    <Text style={styles.sheetEmptyText}>
+                      {loading ? 'Loading…' : 'No premium pumps in range yet.'}
+                    </Text>
+                  </View>
+                ) : (
+                  sortedStations.slice(0, 6).map((s, i) => {
+                    const isCheap = s.id === cheapestId;
+                    const mi = (s.distance_meters / 1609).toFixed(1);
+                    const priceLabel =
+                      s.price_cents != null
+                        ? `$${(s.price_cents / 100).toFixed(2)}`
+                        : '—';
+                    return (
+                      <View
+                        key={s.id}
+                        style={[styles.sheetRow, isCheap && styles.sheetRowCheap]}>
+                        <Text style={styles.sheetCellIx}>{i + 1}</Text>
+                        <Text style={styles.sheetCellName} numberOfLines={1}>
+                          {s.brand ?? s.name}
+                          {s.id === closestId ? ' · closest' : ''}
+                        </Text>
+                        <Text style={styles.sheetCellMi}>{mi}</Text>
+                        <Text
+                          style={[
+                            styles.sheetCellPrice,
+                            isCheap && styles.sheetCellPriceCheap,
+                          ]}>
+                          {priceLabel}
+                        </Text>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            </View>
+
+            {/* Location + search */}
             <Pressable
               onPress={applyCurrentLocation}
               style={({ pressed }) => [styles.locCard, pressed && styles.pressed]}>
+              <Ionicons
+                name={usingCurrentLocation ? 'navigate' : 'location'}
+                size={16}
+                color={colors.rust}
+              />
               <View style={{ flex: 1 }}>
                 <Text style={styles.locLabel}>
-                  {usingCurrentLocation ? 'YOU ARE HERE' : 'VIEWING'}
+                  {usingCurrentLocation ? 'You are here' : 'Viewing'}
                 </Text>
                 <Text style={styles.locValue} numberOfLines={1}>
                   {usingCurrentLocation
@@ -194,14 +357,13 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
                     : searchLabel ?? '—'}
                 </Text>
               </View>
-              <Ionicons
-                name={usingCurrentLocation ? 'navigate' : 'location'}
-                size={16}
-                color={colors.rust}
-              />
+              {!usingCurrentLocation ? (
+                <View style={styles.gpsPill}>
+                  <Text style={styles.gpsPillText}>Use GPS</Text>
+                </View>
+              ) : null}
             </Pressable>
 
-            {/* Search */}
             <View style={styles.searchRow}>
               <Ionicons name="search" size={14} color={colors.inkFaint} />
               <TextInput
@@ -218,46 +380,57 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
               {searching ? <ActivityIndicator size="small" color={colors.rust} /> : null}
             </View>
 
-            <Text style={styles.sectionHead}>Six pumps. Color-coded by ranking.</Text>
-            <Text style={styles.sectionSub}>
-              Each card is a single observation timestamped by Google Places, with net
-              savings computed against the closest priced baseline.
-            </Text>
-
-            {/* Segmented octane control */}
-            <View style={styles.segmented}>
-              {(['87', '89'] as const).map((label) => {
-                const num = Number(label) as 87 | 89;
-                const active = octane === num;
-                return (
-                  <Pressable
-                    key={label}
-                    onPress={() => setOctane(num)}
-                    style={[styles.segCell, active && styles.segCellActive]}>
-                    <Text style={[styles.segText, active && styles.segTextActive]}>
-                      {num}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-              <Pressable
-                onPress={() => setOctane('premium')}
-                style={[
-                  styles.segCell,
-                  styles.segCellPrem,
-                  octane === 'premium' && styles.segCellPremActive,
-                ]}>
-                <Text
-                  style={[
-                    styles.segText,
-                    octane === 'premium' && styles.segTextPremActive,
-                  ]}>
-                  91+ Any premium
-                </Text>
-              </Pressable>
+            {/* Section head */}
+            <View style={styles.sectionHead}>
+              <Text style={styles.sectionHeadTitle}>
+                Pumps. Color-coded by ranking.
+              </Text>
+              <Text style={styles.sectionHeadSub}>
+                Each card is a single observation timestamped by Google Places, with net
+                savings computed against the closest priced baseline.
+              </Text>
             </View>
 
-            {/* Inline link sort/radius */}
+            {/* Segmented octane — ink-outline pill */}
+            <View style={styles.segWrap}>
+              <View style={styles.seg}>
+                {(['87', '89'] as const).map((label, idx) => {
+                  const num = Number(label) as 87 | 89;
+                  const active = octane === num;
+                  return (
+                    <Pressable
+                      key={label}
+                      onPress={() => setOctane(num)}
+                      style={[
+                        styles.segCell,
+                        idx === 0 && styles.segCellFirst,
+                        active && styles.segCellActive,
+                      ]}>
+                      <Text style={[styles.segText, active && styles.segTextActive]}>
+                        {num}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                <Pressable
+                  onPress={() => setOctane('premium')}
+                  style={[
+                    styles.segCell,
+                    styles.segCellLast,
+                    octane === 'premium' && styles.segCellActive,
+                  ]}>
+                  <Text
+                    style={[
+                      styles.segText,
+                      octane === 'premium' && styles.segTextActive,
+                    ]}>
+                    91+ Any premium
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+
+            {/* Sort + radius — inline text links */}
             <View style={styles.linkRow}>
               <Text style={styles.linkRowLabel}>Sort</Text>
               {(['cheapest', 'closest'] as const).map((k) => {
@@ -270,8 +443,7 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
                   </Pressable>
                 );
               })}
-              <Text style={styles.linkRowDot}>·</Text>
-              <Text style={styles.linkRowLabel}>Radius</Text>
+              <Text style={styles.linkRowSpacer}>Radius</Text>
               {[1609, 4828, 8047, 16093].map((m) => {
                 const active = radius === m;
                 return (
@@ -320,12 +492,63 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
           ) : null
         }
         ListFooterComponent={
-          sortedStations.length > 0 && hiddenUnpriced > 0 ? (
-            <Text style={styles.hiddenNote}>
-              + {hiddenUnpriced} nearby station
-              {hiddenUnpriced === 1 ? '' : 's'} without premium data yet
-            </Text>
-          ) : null
+          <>
+            {sortedStations.length > 0 && hiddenUnpriced > 0 ? (
+              <Text style={styles.hiddenNote}>
+                + {hiddenUnpriced} nearby station
+                {hiddenUnpriced === 1 ? '' : 's'} without premium data yet
+              </Text>
+            ) : null}
+
+            {/* Website footer — dark ink canvas, 4-column link layout */}
+            <View style={styles.footer}>
+              <View style={styles.footerCols}>
+                <View style={styles.footerBrandCol}>
+                  <View style={styles.footerBrandRow}>
+                    <View style={styles.footerSquare} />
+                    <Text style={styles.footerBrandText}>Pump</Text>
+                  </View>
+                  <Text style={styles.footerTag}>
+                    Authoritative premium-octane pump prices with net-savings
+                    math. Built for drivers who care which premium they're
+                    buying.
+                  </Text>
+                </View>
+
+                <View style={styles.footerCol}>
+                  <Text style={styles.footerColTitle}>Product</Text>
+                  <Text style={styles.footerColLink}>Pumps</Text>
+                  <Text style={styles.footerColLink}>Atlas</Text>
+                  <Text style={styles.footerColLink}>Report</Text>
+                  <Text style={styles.footerColLink}>Garage</Text>
+                </View>
+
+                <View style={styles.footerCol}>
+                  <Text style={styles.footerColTitle}>About</Text>
+                  <Text style={styles.footerColLink}>Methodology</Text>
+                  <Text style={styles.footerColLink}>Data sources</Text>
+                  <Text style={styles.footerColLink}>Coverage</Text>
+                  <Text style={styles.footerColLink}>Privacy</Text>
+                </View>
+
+                <View style={styles.footerCol}>
+                  <Text style={styles.footerColTitle}>For drivers</Text>
+                  <Text style={styles.footerColLink}>Sign in</Text>
+                  <Text style={styles.footerColLink}>Favorites</Text>
+                  <Text style={styles.footerColLink}>Price alerts</Text>
+                  <Text style={styles.footerColLink}>Your garage</Text>
+                </View>
+              </View>
+
+              <View style={styles.footerBar}>
+                <Text style={styles.footerBarText}>© 2026 Pump · Editorial</Text>
+                <View style={styles.footerBarRight}>
+                  <Text style={styles.footerBarLink}>Privacy</Text>
+                  <Text style={styles.footerBarLink}>Terms</Text>
+                </View>
+              </View>
+            </View>
+          </>
         }
       />
     </SafeAreaView>
@@ -339,36 +562,210 @@ function radiusMiLabel(m: number): string {
   return '10';
 }
 
-function makeStyles({ colors, fonts, radius, space }: Theme) {
+function makeStyles({ colors, fonts, space, radius }: Theme, width: number) {
+  // Scale up toward the preview's clamp() maxes on wider screens.
+  const heroTitleSize = width >= 900 ? 64 : width >= 600 ? 52 : 40;
+  const heroTitleLine = Math.round(heroTitleSize * 1.05);
+  const sectionTitleSize = width >= 600 ? 36 : 28;
+  const featurePriceSize = width >= 900 ? 96 : width >= 600 ? 80 : 64;
+  const featureBrandSize = width >= 900 ? 48 : width >= 600 ? 40 : 32;
+
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
-    list: { paddingHorizontal: space.lg, paddingBottom: space.xxl, gap: 16 },
+    list: {
+      paddingHorizontal: space.lg,
+      paddingBottom: 0,
+      gap: 20,
+    },
 
-    headerStack: { paddingTop: space.lg, gap: 16 },
+    headerStack: {
+      gap: 24,
+      paddingTop: 0,
+    },
+
+    // Top nav strip — coral square + Pump + Sign in / Get started.
+    // Escapes the list's lg horizontal padding via negative margin so the
+    // bottom border runs edge-to-edge like the preview.
+    navBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 16,
+      paddingHorizontal: space.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.paperEdge,
+      marginHorizontal: -space.lg,
+      marginBottom: width >= 600 ? 24 : 8,
+    },
+    navBrand: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+      flex: 1,
+    },
+    navSquare: {
+      width: 18,
+      height: 18,
+      backgroundColor: colors.rust,
+      borderRadius: 4,
+    },
+    navBrandText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 20,
+      color: colors.ink,
+      letterSpacing: -0.4,
+    },
+    navRight: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+    },
+    navPillOutline: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 9999,
+      borderWidth: 1,
+      borderColor: colors.ink,
+    },
+    navPillOutlineText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: colors.ink,
+      letterSpacing: -0.1,
+    },
+    navPill: {
+      paddingHorizontal: 14,
+      paddingVertical: 8,
+      borderRadius: 9999,
+      backgroundColor: colors.ink,
+    },
+    navPillText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: colors.bg,
+      letterSpacing: -0.1,
+    },
+
+    // Hero grid — title-block left, station sheet right on widescreens
+    heroGrid: {
+      flexDirection: width >= 820 ? 'row' : 'column',
+      gap: width >= 820 ? 56 : 28,
+      alignItems: width >= 820 ? 'center' : 'stretch',
+      paddingTop: width >= 600 ? 24 : 8,
+    },
+
+    // Title block
+    hero: { gap: 18, flex: width >= 820 ? 1 : undefined },
+
+    // Station sheet — stylized spreadsheet, runs flush-edge on narrow
+    // screens, side-by-side on widescreens.
+    sheet: {
+      flex: width >= 820 ? 1 : undefined,
+      backgroundColor: '#f8fafc',
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.paperEdge,
+      overflow: 'hidden',
+      ...(Platform.OS === 'web'
+        ? ({ boxShadow: '0 18px 40px rgba(24,29,38,0.08)' } as any)
+        : null),
+    },
+    sheetBar: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 10,
+      backgroundColor: '#f5e9d4',
+      borderBottomWidth: 1,
+      borderBottomColor: colors.paperEdge,
+    },
+    sheetDot: { width: 9, height: 9, borderRadius: 50 },
+    sheetFilename: {
+      marginLeft: 6,
+      fontFamily: fonts.bodyMedium,
+      fontSize: 13,
+      color: colors.inkFaint,
+    },
+    sheetRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.paperEdge,
+    },
+    sheetRowHeader: { backgroundColor: '#e0e2e6' },
+    sheetRowCheap: { backgroundColor: 'rgba(170,45,0,0.06)' },
+    sheetRowEmpty: { justifyContent: 'center', paddingVertical: 24 },
+    sheetEmptyText: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.inkFaint,
+      fontStyle: 'italic',
+    },
+    sheetCellIx: {
+      width: 28,
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: colors.inkFaint,
+    },
+    sheetCellName: {
+      flex: 1,
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: colors.ink,
+    },
+    sheetCellMi: {
+      width: 56,
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: colors.inkSoft,
+      textAlign: 'right',
+    },
+    sheetCellPrice: {
+      width: 72,
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: colors.ink,
+      textAlign: 'right',
+    },
+    sheetCellPriceCheap: { color: colors.rust },
+    sheetCellHeader: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 11,
+      color: colors.inkFaint,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
 
     kicker: {
       fontFamily: fonts.bodyBold,
-      fontSize: 12,
+      fontSize: 14,
       color: colors.rust,
-      letterSpacing: 0.4,
+      letterSpacing: 0.1,
     },
-    hero: {
+    heroTitle: {
       fontFamily: fonts.display,
-      fontSize: 36,
+      fontSize: heroTitleSize,
+      lineHeight: heroTitleLine,
       color: colors.ink,
-      letterSpacing: -1,
-      lineHeight: 40,
+      letterSpacing: -1.6,
+      fontWeight: '600',
     },
-    heroEm: {
+    heroTitleEm: {
+      // Approximate the preview's 4px-thick coral underline. RN doesn't
+      // support text-underline-offset, so we set decorationColor to coral
+      // and let the text sit a half-line above its baseline visually via
+      // the inline element styling.
       color: colors.rust,
       textDecorationLine: 'underline',
+      textDecorationColor: colors.rust,
     },
     lede: {
       fontFamily: fonts.body,
-      fontSize: 15,
+      fontSize: width >= 600 ? 19 : 16,
+      lineHeight: width >= 600 ? 28 : 24,
       color: colors.inkSoft,
-      lineHeight: 22,
-      marginBottom: 8,
     },
 
     locCard: {
@@ -376,23 +773,36 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       alignItems: 'center',
       gap: 12,
       paddingHorizontal: 16,
-      paddingVertical: 12,
-      backgroundColor: colors.paper,
-      borderRadius: radius.md,
+      paddingVertical: 14,
+      backgroundColor: '#f8fafc',
+      borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.paperEdge,
+      marginTop: 8,
     },
     locLabel: {
       fontFamily: fonts.bodyBold,
-      fontSize: 10,
+      fontSize: 11,
       color: colors.rust,
-      letterSpacing: 1.5,
+      letterSpacing: 0.8,
       marginBottom: 2,
+      textTransform: 'uppercase',
     },
     locValue: {
-      fontFamily: fonts.display,
+      fontFamily: fonts.bodyMedium,
       fontSize: 16,
       color: colors.ink,
+    },
+    gpsPill: {
+      backgroundColor: colors.ink,
+      paddingHorizontal: 12,
+      paddingVertical: 6,
+      borderRadius: 9999,
+    },
+    gpsPillText: {
+      color: colors.bg,
+      fontFamily: fonts.bodyBold,
+      fontSize: 12,
     },
     pressed: { opacity: 0.7 },
 
@@ -401,12 +811,11 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       alignItems: 'center',
       gap: 8,
       paddingHorizontal: 14,
-      paddingVertical: 10,
-      backgroundColor: colors.bg,
-      borderRadius: radius.md,
+      paddingVertical: 12,
+      backgroundColor: '#f8fafc',
+      borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: colors.paperEdge,
-      marginBottom: 8,
     },
     searchInput: {
       flex: 1,
@@ -415,47 +824,53 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       color: colors.ink,
     },
 
-    sectionHead: {
+    // Section head — title + sub
+    sectionHead: { gap: 8, marginTop: 8 },
+    sectionHeadTitle: {
       fontFamily: fonts.display,
-      fontSize: 26,
+      fontSize: sectionTitleSize,
+      lineHeight: sectionTitleSize * 1.1,
       color: colors.ink,
-      letterSpacing: -0.6,
-      marginTop: 12,
+      letterSpacing: -1,
+      fontWeight: '600',
     },
-    sectionSub: {
+    sectionHeadSub: {
       fontFamily: fonts.body,
-      fontSize: 14,
+      fontSize: 17,
+      lineHeight: 26,
       color: colors.inkSoft,
-      lineHeight: 20,
+      maxWidth: 600,
     },
 
-    segmented: {
+    // Segmented control — ink-outline pill, active = ink fill
+    segWrap: { alignItems: 'flex-start' },
+    seg: {
       flexDirection: 'row',
-      backgroundColor: colors.dust,
+      borderWidth: 1,
+      borderColor: colors.ink,
       borderRadius: 9999,
-      padding: 4,
-      gap: 4,
-      alignSelf: 'flex-start',
+      overflow: 'hidden',
     },
     segCell: {
-      paddingHorizontal: 16,
-      paddingVertical: 8,
-      borderRadius: 9999,
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      backgroundColor: 'transparent',
     },
-    segCellActive: { backgroundColor: colors.paper },
-    segCellPrem: {},
-    segCellPremActive: { backgroundColor: colors.rust },
+    segCellFirst: {},
+    segCellLast: {},
+    segCellActive: { backgroundColor: colors.ink },
     segText: {
-      fontFamily: fonts.bodyMedium,
+      fontFamily: fonts.bodyBold,
       fontSize: 13,
       color: colors.inkSoft,
+      letterSpacing: -0.1,
     },
-    segTextActive: { color: colors.ink, fontFamily: fonts.bodyBold },
-    segTextPremActive: { color: colors.onRust, fontFamily: fonts.bodyBold },
+    segTextActive: { color: colors.bg },
 
+    // Sort / radius row — inline text links
     linkRow: {
       flexDirection: 'row',
-      alignItems: 'center',
+      alignItems: 'baseline',
       gap: 16,
       flexWrap: 'wrap',
     },
@@ -464,7 +879,12 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       fontSize: 14,
       color: colors.inkFaint,
     },
-    linkRowDot: { color: colors.inkFaint, fontSize: 14 },
+    linkRowSpacer: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.inkFaint,
+      marginLeft: 12,
+    },
     linkText: {
       fontFamily: fonts.body,
       fontSize: 14,
@@ -475,64 +895,90 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       fontFamily: fonts.bodyBold,
     },
 
-    /* Stations — full-bleed signature-color cards */
+    // Feature card — full-bleed signature color
     feature: {
-      borderRadius: radius.xl,
-      padding: 24,
+      borderRadius: 24,
+      padding: width >= 720 ? 40 : 28,
+      gap: 12,
+    },
+    featurePressed: { opacity: 0.92 },
+    featureBody: {
+      flexDirection: width >= 720 ? 'row' : 'column',
+      gap: width >= 720 ? 32 : 20,
+      alignItems: width >= 720 ? 'center' : 'stretch',
+    },
+    featureLeft: {
+      flex: width >= 720 ? 1.4 : undefined,
+      gap: 8,
+    },
+    featureRight: {
+      flex: width >= 720 ? 1 : undefined,
+      alignItems: width >= 720 ? 'flex-end' : 'flex-start',
       gap: 6,
     },
-    featurePressed: { opacity: 0.9 },
-    featureLeft: { gap: 4 },
     featureKicker: {
       fontFamily: fonts.bodyBold,
-      fontSize: 12,
-      letterSpacing: 0.3,
+      fontSize: 14,
+      letterSpacing: 0,
+      opacity: 0.85,
     },
     featureBrand: {
       fontFamily: fonts.display,
-      fontSize: 28,
-      letterSpacing: -0.6,
-      lineHeight: 30,
-      marginTop: 2,
+      fontSize: featureBrandSize,
+      lineHeight: featureBrandSize * 1.05,
+      letterSpacing: -1.4,
+      fontWeight: '600',
+      marginTop: 4,
     },
     featureAddr: {
       fontFamily: fonts.body,
-      fontSize: 14,
-      lineHeight: 20,
-    },
-    featureMeta: {
-      fontFamily: fonts.bodyMedium,
-      fontSize: 12,
+      fontSize: 16,
+      lineHeight: 22,
       marginTop: 4,
-    },
-    featureRight: {
-      marginTop: 16,
-      alignItems: 'flex-end',
     },
     featurePrice: {
       fontFamily: fonts.priceHeavy,
-      fontSize: 56,
-      lineHeight: 56,
-      letterSpacing: -2,
+      fontSize: featurePriceSize,
+      lineHeight: featurePriceSize * 0.95,
+      letterSpacing: -featurePriceSize * 0.045,
+      fontWeight: '700',
     },
     featurePriceFrac: {
       fontFamily: fonts.priceHeavy,
-      fontSize: 30,
+      fontSize: featurePriceSize * 0.5,
+      fontWeight: '500',
+    },
+    featurePriceEmpty: {
+      fontFamily: fonts.priceHeavy,
+      fontSize: featurePriceSize * 0.5,
     },
     featureOct: {
-      fontFamily: fonts.bodyBold,
-      fontSize: 12,
-      letterSpacing: 0.3,
+      fontFamily: fonts.body,
+      fontSize: 14,
       marginTop: 4,
+      opacity: 0.85,
+    },
+    featureCta: {
+      paddingHorizontal: 18,
+      paddingVertical: 10,
+      borderRadius: 9999,
+      marginTop: 14,
+    },
+    featureCtaText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 14,
+      letterSpacing: -0.1,
     },
     featureSavings: {
-      marginTop: 14,
-      paddingTop: 14,
       borderTopWidth: 1,
-      borderTopColor: 'rgba(255,255,255,0.2)',
+      paddingTop: 16,
+      marginTop: 4,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 12,
+      flexWrap: 'wrap',
     },
     featureSavingsTag: {
-      alignSelf: 'flex-start',
       paddingHorizontal: 12,
       paddingVertical: 5,
       borderRadius: 9999,
@@ -540,22 +986,116 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     featureSavingsTagText: {
       fontFamily: fonts.bodyBold,
       fontSize: 12,
+      letterSpacing: 0,
+    },
+    featureSavingsHint: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      flex: 1,
     },
 
     hiddenNote: {
-      fontFamily: fonts.bodyItalic,
+      fontFamily: fonts.body,
       fontSize: 14,
       color: colors.inkFaint,
       textAlign: 'center',
-      marginTop: 24,
+      fontStyle: 'italic',
+      paddingVertical: 24,
+    },
+
+    // Dark website footer — escapes list padding to go edge-to-edge.
+    footer: {
+      backgroundColor: colors.ink,
+      paddingHorizontal: space.lg,
+      paddingTop: width >= 600 ? 72 : 56,
+      paddingBottom: 32,
+      marginHorizontal: -space.lg,
+      marginTop: 32,
+    },
+    footerCols: {
+      flexDirection: width >= 720 ? 'row' : 'column',
+      gap: width >= 720 ? 40 : 32,
+      marginBottom: 48,
+      flexWrap: 'wrap',
+    },
+    footerBrandCol: {
+      flex: width >= 720 ? 2 : undefined,
+      gap: 12,
+      minWidth: 220,
+    },
+    footerBrandRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
+    },
+    footerSquare: {
+      width: 20,
+      height: 20,
+      backgroundColor: colors.rust,
+      borderRadius: 4,
+    },
+    footerBrandText: {
+      fontFamily: fonts.display,
+      fontSize: 28,
+      color: '#ffffff',
+      letterSpacing: -0.7,
+      fontWeight: '700',
+    },
+    footerTag: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      lineHeight: 22,
+      color: 'rgba(255,255,255,0.7)',
+      maxWidth: 320,
+      marginTop: 4,
+    },
+    footerCol: {
+      flex: width >= 720 ? 1 : undefined,
+      gap: 8,
+      minWidth: 140,
+    },
+    footerColTitle: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: '#ffffff',
+      marginBottom: 4,
+    },
+    footerColLink: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: 'rgba(255,255,255,0.7)',
+    },
+    footerBar: {
+      flexDirection: width >= 600 ? 'row' : 'column',
+      justifyContent: 'space-between',
+      alignItems: width >= 600 ? 'center' : 'flex-start',
+      gap: 12,
+      paddingTop: 24,
+      borderTopWidth: 1,
+      borderTopColor: 'rgba(255,255,255,0.15)',
+    },
+    footerBarText: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.5)',
+    },
+    footerBarRight: {
+      flexDirection: 'row',
+      gap: 18,
+    },
+    footerBarLink: {
+      fontFamily: fonts.body,
+      fontSize: 13,
+      color: 'rgba(255,255,255,0.7)',
     },
 
     emptyWrap: { padding: 40, alignItems: 'center', gap: 12 },
     emptyText: {
-      fontFamily: fonts.bodyItalic,
+      fontFamily: fonts.body,
       fontSize: 14,
       color: colors.inkFaint,
       textAlign: 'center',
+      fontStyle: 'italic',
     },
     errorWrap: { padding: 24, alignItems: 'center', gap: 12 },
     errorText: {
@@ -567,13 +1107,13 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     errorBtn: {
       paddingHorizontal: 22,
       paddingVertical: 11,
-      backgroundColor: colors.rust,
+      backgroundColor: colors.ink,
       borderRadius: 9999,
     },
     errorBtnText: {
-      fontFamily: fonts.bodyMedium,
+      fontFamily: fonts.bodyBold,
       fontSize: 14,
-      color: colors.onRust,
+      color: colors.bg,
     },
   });
 }
