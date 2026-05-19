@@ -2,6 +2,8 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 import {
   ActivityIndicator,
   Linking,
@@ -44,7 +46,6 @@ import {
   type SortKey,
 } from '@/lib/preferences';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts, radius as radii, space } from '@/lib/theme';
 import { octanesFor, type OctaneSelection, type StationWithPrice } from '@/lib/types';
 
 type Coords = { latitude: number; longitude: number };
@@ -58,6 +59,9 @@ function formatLocationLabel(place: Location.LocationGeocodedAddress | null): st
 }
 
 export default function ListScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const { colors } = theme;
   const { session } = useAuth();
   const [octane, setOctane] = useState<OctaneSelection>(DEFAULT_OCTANE);
   const [radius, setRadius] = useState<RadiusMeters>(DEFAULT_RADIUS_METERS);
@@ -681,7 +685,8 @@ export default function ListScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles({ colors, fonts, radius: radii, space }: Theme) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
 
   brandHeader: {
@@ -968,3 +973,4 @@ const styles = StyleSheet.create({
     letterSpacing: 3,
   },
 });
+}

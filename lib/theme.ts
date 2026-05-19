@@ -1,59 +1,83 @@
-// Desert Refueling Station — gas-finder design tokens.
+// Theme tokens & registry. Three themes ship in v1:
+//   - desert  (Desert Refueling Station — original, default)
+//   - ferrari (Edizione Corsa — near-black + Rosso Corsa)
+//   - airtable (Editorial — white + signature-coral)
 //
-// Aesthetic: 1960s Southwestern highway gas station poster meets vintage
-// mechanical pump display. Warm paper background, deep rust signage, amber
-// highlights, and seven-segment-evoking numerals for prices.
+// Token surface is identical across themes so every consumer can call
+// useTheme() and swap. Layout is *not* themed; only colors, fonts, radius,
+// space, shadow. The previews under /preview/<theme>.html show the layout
+// overhaul; this in-app theme is the token-level approximation.
+//
+// Top-level `colors / fonts / radius / space / shadow / fontSizes` exports
+// remain as the desert defaults so non-migrated files keep working until
+// they switch to useTheme().
 
-export const colors = {
-  // Surfaces
-  bg: '#F4EFE6',          // Warm cream "paper"
-  paper: '#FBF6ED',       // Lighter cream for cards
-  paperEdge: '#EDE5D2',   // Edge / divider on paper
+export type ThemeId = 'desert' | 'ferrari' | 'airtable';
 
-  // Ink
-  ink: '#1C1814',         // Near-black with a warm cast
-  inkSoft: '#5C544A',     // Warm gray for body
-  inkFaint: '#9A8E7C',    // Faint sand-ink for meta
+export type ThemeColors = {
+  bg: string;
+  paper: string;
+  paperEdge: string;
+  ink: string;
+  inkSoft: string;
+  inkFaint: string;
+  rust: string;
+  rustDark: string;
+  amber: string;
+  amberDark: string;
+  moss: string;
+  sand: string;
+  dust: string;
+  cactus: string;
+  danger: string;
+  good: string;
+  shadow: string;
+};
 
-  // Signage
-  rust: '#8B2E1B',        // Deep oxblood — primary action / brand
-  rustDark: '#651E10',    // Pressed state for rust
-  amber: '#D4882C',       // Sunset amber — accent
-  amberDark: '#A4651E',   // Pressed amber
+export type ThemeFonts = {
+  display: string;
+  displayRegular: string;
+  displayItalic: string;
+  body: string;
+  bodyMedium: string;
+  bodyBold: string;
+  bodyItalic: string;
+  numeral: string;
+  priceHeavy: string;
+};
 
-  // Native / earth
-  moss: '#4A5D3E',        // Muted green for "ok" / source.official
-  sand: '#D9CFB8',        // Sandy borders + dividers
-  dust: '#C4B89F',        // Slightly stronger divider
-  cactus: '#7B8B6F',      // Dry green secondary
+export type ThemeShadow = {
+  card: {
+    shadowColor: string;
+    shadowOpacity: number;
+    shadowRadius: number;
+    shadowOffset: { width: number; height: number };
+    elevation: number;
+  };
+  panel: {
+    shadowColor: string;
+    shadowOpacity: number;
+    shadowRadius: number;
+    shadowOffset: { width: number; height: number };
+    elevation: number;
+  };
+};
 
-  // Functional
-  danger: '#A52B1A',
-  good: '#4A5D3E',
-  shadow: 'rgba(40, 28, 16, 0.10)',
-} as const;
+export type ThemeRadius = { sm: number; md: number; lg: number; xl: number };
+export type ThemeSpace = { xs: number; sm: number; md: number; lg: number; xl: number; xxl: number };
+export type ThemeFontSizes = { xs: number; sm: number; base: number; md: number; lg: number; xl: number; xxl: number; display: number };
 
-export const fonts = {
-  // Display serif with character — wonky/soft optical axis available.
-  display: 'Fraunces_700Bold',
-  displayRegular: 'Fraunces_400Regular',
-  displayItalic: 'Fraunces_500Medium_Italic',
-
-  // Warm reading serif for body copy.
-  body: 'Newsreader_400Regular',
-  bodyMedium: 'Newsreader_500Medium',
-  bodyBold: 'Newsreader_700Bold',
-  bodyItalic: 'Newsreader_400Regular_Italic',
-
-  // Mechanical / monospaced for octane labels and minor numerals — looks like
-  // an old digital pump readout. Use this for small/secondary numbers where
-  // the schematic look matters more than weight.
-  numeral: 'MajorMonoDisplay_400Regular',
-
-  // Heavy mono for price displays — full chunky weight reads as the marquee
-  // number on a station price sign. Use this for the dominant price digits.
-  priceHeavy: 'JetBrainsMono_800ExtraBold',
-} as const;
+export type Theme = {
+  id: ThemeId;
+  name: string;
+  scheme: 'light' | 'dark';
+  colors: ThemeColors;
+  fonts: ThemeFonts;
+  fontSizes: ThemeFontSizes;
+  space: ThemeSpace;
+  radius: ThemeRadius;
+  shadow: ThemeShadow;
+};
 
 export const fontSizes = {
   xs: 10,
@@ -75,14 +99,48 @@ export const space = {
   xxl: 32,
 } as const;
 
-export const radius = {
-  sm: 6,
-  md: 10,
-  lg: 14,
-  xl: 20,
-} as const;
+// Per-theme radius scales — Ferrari + Airtable both prefer sharper edges.
+const desertRadius = { sm: 6, md: 10, lg: 14, xl: 20 } as const;
+const ferrariRadius = { sm: 0, md: 0, lg: 2, xl: 4 } as const;
+const airtableRadius = { sm: 6, md: 10, lg: 18, xl: 24 } as const;
 
-export const shadow = {
+// Default top-level `radius` export stays desert for backward compat.
+export const radius = desertRadius;
+
+// -- Desert (default, current Desert Refueling Station system) ------------
+const desertColors: ThemeColors = {
+  bg: '#F4EFE6',
+  paper: '#FBF6ED',
+  paperEdge: '#EDE5D2',
+  ink: '#1C1814',
+  inkSoft: '#5C544A',
+  inkFaint: '#9A8E7C',
+  rust: '#8B2E1B',
+  rustDark: '#651E10',
+  amber: '#D4882C',
+  amberDark: '#A4651E',
+  moss: '#4A5D3E',
+  sand: '#D9CFB8',
+  dust: '#C4B89F',
+  cactus: '#7B8B6F',
+  danger: '#A52B1A',
+  good: '#4A5D3E',
+  shadow: 'rgba(40, 28, 16, 0.10)',
+};
+
+const desertFonts: ThemeFonts = {
+  display: 'Fraunces_700Bold',
+  displayRegular: 'Fraunces_400Regular',
+  displayItalic: 'Fraunces_500Medium_Italic',
+  body: 'Newsreader_400Regular',
+  bodyMedium: 'Newsreader_500Medium',
+  bodyBold: 'Newsreader_700Bold',
+  bodyItalic: 'Newsreader_400Regular_Italic',
+  numeral: 'MajorMonoDisplay_400Regular',
+  priceHeavy: 'JetBrainsMono_800ExtraBold',
+};
+
+const desertShadow: ThemeShadow = {
   card: {
     shadowColor: '#28190C',
     shadowOpacity: 0.12,
@@ -97,4 +155,148 @@ export const shadow = {
     shadowOffset: { width: 0, height: 2 },
     elevation: 2,
   },
-} as const;
+};
+
+// -- Ferrari (Edizione Corsa — near-black canvas, Rosso Corsa as accent) --
+const ferrariColors: ThemeColors = {
+  bg: '#181818',
+  paper: '#202020',
+  paperEdge: '#303030',
+  ink: '#ffffff',
+  inkSoft: '#c8c8c8',
+  inkFaint: '#969696',
+  rust: '#da291c',
+  rustDark: '#b01e0a',
+  amber: '#ffffff',     // No separate amber — Ferrari's only voltage is Rosso; price digits read in white
+  amberDark: '#d9d9d9',
+  moss: '#3a8a3a',
+  sand: '#404040',
+  dust: '#404040',
+  cactus: '#5a5a5a',
+  danger: '#f13a2c',
+  good: '#03904a',
+  shadow: 'rgba(0, 0, 0, 0.45)',
+};
+
+const ferrariFonts: ThemeFonts = {
+  display: 'Outfit_600SemiBold',
+  displayRegular: 'Outfit_400Regular',
+  displayItalic: 'Outfit_400Regular',
+  body: 'Outfit_400Regular',
+  bodyMedium: 'Outfit_500Medium',
+  bodyBold: 'Outfit_700Bold',
+  bodyItalic: 'Outfit_400Regular',
+  numeral: 'Outfit_500Medium',
+  priceHeavy: 'Outfit_700Bold',
+};
+
+const ferrariShadow: ThemeShadow = {
+  card: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.45,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 4,
+  },
+  panel: {
+    shadowColor: '#000000',
+    shadowOpacity: 0.32,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 2,
+  },
+};
+
+// -- Airtable (Editorial — white canvas, signature-coral + Archivo) -------
+const airtableColors: ThemeColors = {
+  bg: '#ffffff',
+  paper: '#ffffff',
+  paperEdge: '#dddddd',
+  ink: '#181d26',
+  inkSoft: '#333840',
+  inkFaint: '#5a606b',
+  rust: '#aa2d00',       // signature-coral as the rust slot
+  rustDark: '#7a2000',
+  amber: '#d9a441',      // signature-mustard as the amber slot
+  amberDark: '#9c7224',
+  moss: '#0a2e0e',       // signature-forest
+  sand: '#f5e9d4',       // signature-cream
+  dust: '#dddddd',
+  cactus: '#a8d8c4',     // signature-mint
+  danger: '#aa2d00',
+  good: '#0a2e0e',
+  shadow: 'rgba(24, 29, 38, 0.08)',
+};
+
+const airtableFonts: ThemeFonts = {
+  display: 'Archivo_600SemiBold',
+  displayRegular: 'Archivo_400Regular',
+  displayItalic: 'Archivo_500Medium_Italic',
+  body: 'Archivo_400Regular',
+  bodyMedium: 'Archivo_500Medium',
+  bodyBold: 'Archivo_700Bold',
+  bodyItalic: 'Archivo_400Regular_Italic',
+  numeral: 'Archivo_500Medium',
+  priceHeavy: 'Archivo_700Bold',
+};
+
+const airtableShadow: ThemeShadow = {
+  card: {
+    shadowColor: '#181d26',
+    shadowOpacity: 0.08,
+    shadowRadius: 14,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
+  },
+  panel: {
+    shadowColor: '#181d26',
+    shadowOpacity: 0.05,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 1,
+  },
+};
+
+export const THEMES: Record<ThemeId, Theme> = {
+  desert: {
+    id: 'desert',
+    name: 'Desert Refueling Station',
+    scheme: 'light',
+    colors: desertColors,
+    fonts: desertFonts,
+    fontSizes,
+    space,
+    radius: desertRadius,
+    shadow: desertShadow,
+  },
+  ferrari: {
+    id: 'ferrari',
+    name: 'Edizione Corsa',
+    scheme: 'dark',
+    colors: ferrariColors,
+    fonts: ferrariFonts,
+    fontSizes,
+    space,
+    radius: ferrariRadius,
+    shadow: ferrariShadow,
+  },
+  airtable: {
+    id: 'airtable',
+    name: 'Editorial',
+    scheme: 'light',
+    colors: airtableColors,
+    fonts: airtableFonts,
+    fontSizes,
+    space,
+    radius: airtableRadius,
+    shadow: airtableShadow,
+  },
+};
+
+export const DEFAULT_THEME_ID: ThemeId = 'desert';
+
+// Top-level desert tokens kept as named exports so legacy callsites keep
+// working until they switch to useTheme().
+export const colors = desertColors;
+export const fonts = desertFonts;
+export const shadow = desertShadow;

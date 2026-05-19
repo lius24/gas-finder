@@ -26,7 +26,8 @@ import {
 } from '@/lib/favorites';
 import { formatDistance } from '@/lib/geo';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts, radius, shadow, space } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 import {
   ALL_OCTANES,
   OCTANE_LABELS,
@@ -59,6 +60,9 @@ function pumpOctanesFor(prices: { octane: Octane }[]): Octane[] {
 }
 
 export default function StationDetail() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const { colors } = theme;
   const router = useRouter();
   const { session } = useAuth();
   const params = useLocalSearchParams<{ id: string; seed?: string }>();
@@ -479,7 +483,8 @@ function relativeTime(iso: string): string {
   return `${weeks}w ago`;
 }
 
-const styles = StyleSheet.create({
+function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: space.lg, paddingBottom: space.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 24, backgroundColor: colors.bg },
@@ -795,3 +800,4 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 });
+}

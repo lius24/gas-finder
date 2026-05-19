@@ -12,12 +12,17 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts, radius, space } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 
 type Step = 'email' | 'otp';
 
 export default function SignInScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const { colors } = theme;
   const router = useRouter();
   const [step, setStep] = useState<Step>('email');
   const [email, setEmail] = useState('');
@@ -175,7 +180,8 @@ export default function SignInScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles({ colors, fonts, radius, space }: Theme) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   flex: { flex: 1 },
   inner: { flex: 1, padding: 24, justifyContent: 'flex-start' },
@@ -246,3 +252,4 @@ const styles = StyleSheet.create({
   },
   otpFooter: { flexDirection: 'row', justifyContent: 'space-around', gap: 16 },
 });
+}

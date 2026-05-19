@@ -2,7 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,10 +20,14 @@ import {
   type RadiusMeters,
 } from '@/lib/preferences';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts, radius as radii } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 import { octanesFor, type OctaneSelection, type StationWithPrice } from '@/lib/types';
 
 export default function MapScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const { colors } = theme;
   const router = useRouter();
   const mapRef = useRef<MapView | null>(null);
   const [octane, setOctane] = useState<OctaneSelection>(DEFAULT_OCTANE);
@@ -228,7 +232,8 @@ export default function MapScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles({ colors, fonts, radius: radii }: Theme) {
+  return StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   mapWrap: { flex: 1 },
   map: { flex: 1 },
@@ -314,3 +319,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
   },
 });
+}

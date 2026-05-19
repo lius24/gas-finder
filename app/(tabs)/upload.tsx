@@ -17,7 +17,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth';
 import { formatPriceCents } from '@/lib/geo';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts, radius, space } from '@/lib/theme';
+import { useMemo } from 'react';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 import type { Octane } from '@/lib/types';
 
 type ParsedPrice = { octane: Octane; price_cents: number };
@@ -28,6 +30,9 @@ type ReportResponse = {
 };
 
 export default function UploadScreen() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const { colors } = theme;
   const { session } = useAuth();
   const router = useRouter();
   const params = useLocalSearchParams<{ stationId?: string; stationLabel?: string }>();
@@ -212,7 +217,8 @@ export default function UploadScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles({ colors, fonts, radius, space }: Theme) {
+  return StyleSheet.create({
   container: { flex: 1, padding: space.lg, backgroundColor: colors.bg },
   brandRule: { width: 36, height: 2, backgroundColor: colors.rust, marginBottom: 10 },
   kicker: {
@@ -329,3 +335,4 @@ const styles = StyleSheet.create({
     letterSpacing: 2,
   },
 });
+}

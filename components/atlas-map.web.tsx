@@ -1,9 +1,13 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
-import { colors, fonts, space } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 
 export default function AtlasMapWeb() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.center}>
@@ -18,34 +22,36 @@ export default function AtlasMapWeb() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.bg },
-  center: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: space.xl,
-    gap: 8,
-  },
-  kicker: {
-    fontFamily: fonts.bodyBold,
-    fontSize: 10,
-    color: colors.rust,
-    letterSpacing: 4,
-    marginBottom: 4,
-  },
-  title: {
-    fontFamily: fonts.display,
-    fontSize: 32,
-    color: colors.ink,
-    marginBottom: 8,
-  },
-  body: {
-    fontFamily: fonts.body,
-    fontSize: 14,
-    color: colors.inkSoft,
-    textAlign: 'center',
-    maxWidth: 360,
-    lineHeight: 20,
-  },
-});
+function makeStyles({ colors, fonts, space }: Theme) {
+  return StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.bg },
+    center: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: space.xl,
+      gap: 8,
+    },
+    kicker: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 10,
+      color: colors.rust,
+      letterSpacing: 4,
+      marginBottom: 4,
+    },
+    title: {
+      fontFamily: fonts.display,
+      fontSize: 32,
+      color: colors.ink,
+      marginBottom: 8,
+    },
+    body: {
+      fontFamily: fonts.body,
+      fontSize: 14,
+      color: colors.inkSoft,
+      textAlign: 'center',
+      maxWidth: 360,
+      lineHeight: 20,
+    },
+  });
+}

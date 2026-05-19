@@ -3,11 +3,12 @@ import { Platform } from 'react-native';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { colors, fonts } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 
 const isWeb = Platform.OS === 'web';
 
 export default function TabLayout() {
+  const { colors, fonts } = useTheme();
   return (
     <Tabs
       screenOptions={{

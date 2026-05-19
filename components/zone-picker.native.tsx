@@ -14,7 +14,8 @@ import MapView, { Circle, Marker, type LatLng } from 'react-native-maps';
 
 import { useAuth } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts, radius as radii, space } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 import {
   DEFAULT_ZONE_RADIUS_METERS,
   ZONE_RADIUS_OPTIONS_METERS,
@@ -34,6 +35,9 @@ const RADIUS_CHIP_LABEL: Record<ZoneRadiusMeters, string> = {
 };
 
 export function ZonePicker() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
+  const { colors } = theme;
   const { session } = useAuth();
   const userId = session?.user?.id ?? null;
 
@@ -252,7 +256,8 @@ export function ZonePicker() {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles({ colors, fonts, radius: radii, space }: Theme) {
+  return StyleSheet.create({
   card: {
     padding: space.lg,
     backgroundColor: colors.paper,
@@ -354,3 +359,4 @@ const styles = StyleSheet.create({
     color: colors.inkSoft,
   },
 });
+}

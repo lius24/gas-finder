@@ -1,8 +1,9 @@
 import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius, space } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 import { SECONDARY_OCTANES, type Octane, type OctaneSelection } from '@/lib/types';
 
 const SHORT_LABELS: Record<Octane, string> = {
@@ -20,6 +21,8 @@ type Props = {
 };
 
 export function OctaneSelector({ value, onChange }: Props) {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   // The "premium" union shows by default; specific 91/93/94 chips are
   // revealed only after the user expands. If they explicitly picked a
   // secondary in a past session, keep the expanded chips visible.
@@ -129,7 +132,8 @@ export function OctaneSelector({ value, onChange }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles({ colors, fonts, radius, space }: Theme) {
+  return StyleSheet.create({
   wrap: {
     paddingHorizontal: space.lg,
     paddingTop: space.sm,
@@ -249,3 +253,4 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
 });
+}

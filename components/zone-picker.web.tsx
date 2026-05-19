@@ -1,8 +1,12 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { colors, fonts, radius as radii, space } from '@/lib/theme';
+import type { Theme } from '@/lib/theme';
+import { useTheme } from '@/lib/theme-provider';
 
 export function ZonePicker() {
+  const theme = useTheme();
+  const styles = useMemo(() => makeStyles(theme), [theme]);
   return (
     <View style={styles.card}>
       <Text style={styles.subtitle}>
@@ -17,24 +21,26 @@ export function ZonePicker() {
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    padding: space.lg,
-    backgroundColor: colors.paper,
-    borderRadius: radii.lg,
-    borderWidth: 1,
-    borderColor: colors.paperEdge,
-    gap: 8,
-  },
-  subtitle: {
-    fontFamily: fonts.bodyMedium,
-    fontSize: 14,
-    color: colors.ink,
-    lineHeight: 20,
-  },
-  muted: {
-    fontFamily: fonts.bodyItalic,
-    fontSize: 13,
-    color: colors.inkSoft,
-  },
-});
+function makeStyles({ colors, fonts, radius: radii, space }: Theme) {
+  return StyleSheet.create({
+    card: {
+      padding: space.lg,
+      backgroundColor: colors.paper,
+      borderRadius: radii.lg,
+      borderWidth: 1,
+      borderColor: colors.paperEdge,
+      gap: 8,
+    },
+    subtitle: {
+      fontFamily: fonts.bodyMedium,
+      fontSize: 14,
+      color: colors.ink,
+      lineHeight: 20,
+    },
+    muted: {
+      fontFamily: fonts.bodyItalic,
+      fontSize: 13,
+      color: colors.inkSoft,
+    },
+  });
+}
