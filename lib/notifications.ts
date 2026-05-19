@@ -19,6 +19,11 @@ let registrationInFlight: Promise<string | null> | null = null;
 // user. Idempotent and safe to call on every app launch — each call upserts
 // last_seen_at so stale tokens can be reaped later.
 export async function registerForPushAlerts(userId: string): Promise<string | null> {
+  // Web Push (VAPID + service worker push handlers) is a v1.1+ build —
+  // see TODOS.md. Until then web users get no push at all. Returning here
+  // also avoids prompting for notification permission in browsers, which
+  // would be annoying noise for a feature that doesn't actually work yet.
+  if (Platform.OS === 'web') return null;
   if (registrationInFlight) return registrationInFlight;
 
   registrationInFlight = (async () => {
