@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PUMP · M-edition (preview)</title>
+<meta name="theme-color" content="#000000" />
+<!--
+  Standalone preview of a BMW M-inspired redesign of the Pumps view, per
+  DESIGN.md (near-black canvas, BMW Type Next Latin → Anton/Manrope, sharp
+  0px corners, M tricolor stripe as brand signature, generous spacing).
+  Not wired into the React Native Web app — pure HTML/CSS so it's trivial
+  to rollback (delete this file + redeploy). Data values are mocked to
+  match the live Troy NY footprint roughly.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@300;400;500;700&family=DM+Mono:wght@400;500&display=swap" />
+<style>
+  :root {
+    --canvas: #000000;
+    --surface-soft: #0d0d0d;
+    --surface-card: #1a1a1a;
+    --surface-elevated: #262626;
+    --carbon: #2b2b2b;
+    --hairline: #3c3c3c;
+    --hairline-strong: #262626;
+    --ink: #ffffff;
+    --body: #bbbbbb;
+    --body-strong: #e6e6e6;
+    --muted: #7e7e7e;
+    --m-blue-light: #0066b1;
+    --m-blue-dark: #1c69d4;
+    --m-red: #e22718;
+    --warning: #f4b400;
+    --success: #0fa336;
+
+    --font-display: 'Anton', 'Helvetica Neue Condensed', 'Arial Narrow', sans-serif;
+    --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-mono: 'DM Mono', 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); }
+  body {
+    font-family: var(--font-sans);
+    font-weight: 300;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Tiny grain texture to add depth without invoking photography */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.95' numOctaves='2' seed='3'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.03 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    pointer-events: none;
+    z-index: 9999;
+    opacity: 0.7;
+    mix-blend-mode: overlay;
+  }
+
+  /* M tricolor stripe — the system's only decorative element */
+  .m-stripe {
+    height: 4px;
+    background: linear-gradient(to right,
+      var(--m-blue-light) 0 33.33%,
+      var(--m-blue-dark) 33.33% 66.66%,
+      var(--m-red) 66.66% 100%);
+    width: 100%;
+  }
+  .m-stripe--inline {
+    height: 3px;
+    width: 56px;
+    display: inline-block;
+    vertical-align: middle;
+  }
+
+  /* Layout shell */
+  .shell {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* Top nav */
+  .nav {
+    border-bottom: 1px solid var(--hairline);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    padding: 0 24px;
+    gap: 32px;
+    background: var(--canvas);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .nav__brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: var(--font-display);
+    font-size: 22px;
+    letter-spacing: 1px;
+    line-height: 1;
+  }
+  .nav__brand .m-stripe--inline { margin-right: 4px; }
+  .nav__menu {
+    display: flex;
+    gap: 28px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: var(--body);
+  }
+  .nav__menu li { cursor: pointer; transition: color 200ms ease; }
+  .nav__menu li:hover { color: var(--ink); }
+  .nav__menu li.is-active { color: var(--ink); font-weight: 500; }
+  .nav__right {
+    margin-left: auto;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    font-size: 13px;
+    letter-spacing: 0.5px;
+    color: var(--muted);
+  }
+  @media (max-width: 720px) {
+    .nav__menu { display: none; }
+  }
+
+  /* Hero band — full bleed black with massive display headline */
+  .hero {
+    padding: 96px 24px 64px;
+    border-bottom: 1px solid var(--hairline);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero__eyebrow {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--body);
+    margin-bottom: 24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .hero__display {
+    font-family: var(--font-display);
+    font-size: clamp(72px, 16vw, 200px);
+    line-height: 0.9;
+    letter-spacing: -1px;
+    margin: 0 0 16px;
+    color: var(--ink);
+    text-transform: uppercase;
+  }
+  .hero__display em {
+    font-style: normal;
+    color: var(--m-red);
+  }
+  .hero__sub {
+    font-size: 18px;
+    line-height: 1.5;
+    color: var(--body-strong);
+    font-weight: 300;
+    max-width: 540px;
+    margin: 0 0 32px;
+  }
+  .hero__metric-row {
+    display: flex;
+    gap: 0;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    margin-top: 56px;
+  }
+  .hero__metric {
+    flex: 1;
+    padding: 24px 0;
+    border-right: 1px solid var(--hairline);
+  }
+  .hero__metric:last-child { border-right: 0; }
+  .hero__metric-value {
+    font-family: var(--font-display);
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: 0;
+    color: var(--ink);
+    margin-bottom: 8px;
+  }
+  .hero__metric-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  /* Section heading */
+  .section {
+    padding: 96px 24px;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .section--tight { padding: 48px 24px; }
+  .section__header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+  }
+  .section__head {
+    font-family: var(--font-display);
+    font-size: 48px;
+    line-height: 1.05;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    margin: 0;
+  }
+  .section__counter {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .section__counter strong { color: var(--ink); }
+
+  /* Toolbar / control strip */
+  .controls {
+    border: 1px solid var(--hairline);
+    background: var(--surface-soft);
+  }
+  .controls__row {
+    display: flex;
+    align-items: stretch;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .controls__row:last-child { border-bottom: 0; }
+
+  .control {
+    padding: 20px 24px;
+    border-right: 1px solid var(--hairline);
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .control:last-child { border-right: 0; }
+  .control__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .control__value {
+    font-family: var(--font-display);
+    font-size: 24px;
+    text-transform: uppercase;
+    line-height: 1;
+    color: var(--ink);
+    margin: 0;
+  }
+  .control__value--muted { color: var(--body); font-weight: 400; }
+  .control__hint {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .control button.use-gps {
+    margin-top: 8px;
+    align-self: flex-start;
+    background: transparent;
+    color: var(--ink);
+    border: 1px solid var(--ink);
+    padding: 8px 16px;
+    font: 700 11px/1 var(--font-sans);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: background 200ms ease, color 200ms ease;
+  }
+  .control button.use-gps:hover { background: var(--ink); color: var(--canvas); }
+
+  /* Octane tab strip */
+  .octanes {
+    display: flex;
+    border: 1px solid var(--hairline);
+    background: var(--canvas);
+    margin-bottom: 24px;
+  }
+  .octane {
+    flex: 1;
+    border-right: 1px solid var(--hairline);
+    background: transparent;
+    color: var(--body);
+    padding: 20px 16px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    transition: background 200ms ease, color 200ms ease;
+    font-family: var(--font-sans);
+  }
+  .octane:last-child { border-right: 0; }
+  .octane:hover { background: var(--surface-card); }
+  .octane[aria-selected="true"] {
+    background: var(--ink);
+    color: var(--canvas);
+  }
+  .octane[aria-selected="true"] .octane__sub { color: var(--canvas); opacity: 0.6; }
+  .octane__num {
+    font-family: var(--font-display);
+    font-size: 30px;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+  .octane--prem .octane__num { font-size: 24px; }
+  .octane__sub {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .octane--prem {
+    background: var(--surface-card);
+    border-left: 3px solid var(--m-red);
+  }
+  .octane--prem[aria-selected="true"] {
+    background: var(--m-red);
+    color: var(--ink);
+  }
+  .octane--prem[aria-selected="true"] .octane__sub { color: var(--ink); opacity: 0.85; }
+
+  /* Sort + filter strip */
+  .filter-row {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 18px 0 24px;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .filter-row__label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .filter-row__chips { display: flex; gap: 8px; }
+  .chip {
+    background: transparent;
+    color: var(--body);
+    border: 1px solid var(--hairline);
+    padding: 10px 20px;
+    font: 700 12px/1 var(--font-sans);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: all 200ms ease;
+  }
+  .chip:hover { color: var(--ink); border-color: var(--ink); }
+  .chip[aria-pressed="true"] {
+    background: var(--ink);
+    color: var(--canvas);
+    border-color: var(--ink);
+  }
+
+  /* Stations list */
+  .stations {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    border-top: 1px solid var(--hairline);
+  }
+
+  .station {
+    display: grid;
+    grid-template-columns: 56px 1fr auto;
+    gap: 24px;
+    align-items: center;
+    padding: 28px 0;
+    border-bottom: 1px solid var(--hairline);
+    cursor: pointer;
+    transition: background 200ms ease, padding-left 200ms ease, padding-right 200ms ease;
+    position: relative;
+  }
+  .station:hover {
+    background: var(--surface-soft);
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .station__rank {
+    font-family: var(--font-display);
+    font-size: 28px;
+    color: var(--muted);
+    line-height: 1;
+    text-align: right;
+  }
+  .station--cheapest .station__rank { color: var(--m-red); }
+
+  .station__body { min-width: 0; }
+  .station__brand {
+    font-family: var(--font-display);
+    font-size: 28px;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0;
+    margin: 0 0 6px;
+    color: var(--ink);
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .station__badge {
+    font: 700 10px/1 var(--font-sans);
+    letter-spacing: 1.5px;
+    padding: 5px 8px;
+    text-transform: uppercase;
+    background: var(--m-red);
+    color: var(--ink);
+  }
+  .station__badge--closest { background: var(--warning); color: var(--canvas); }
+  .station__address {
+    font-size: 14px;
+    color: var(--body);
+    font-weight: 300;
+    margin: 0;
+  }
+  .station__meta {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-top: 10px;
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .station__meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .station__meta .dot {
+    width: 4px; height: 4px;
+    background: var(--muted);
+    border-radius: 50%;
+    display: inline-block;
+  }
+  .station__meta .stale { color: var(--warning); }
+
+  .station__price {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 140px;
+  }
+  .station__price-num {
+    font-family: var(--font-mono);
+    font-weight: 500;
+    font-size: 40px;
+    line-height: 1;
+    color: var(--ink);
+    letter-spacing: -1px;
+    font-variant-numeric: tabular-nums;
+  }
+  .station__price-frac {
+    font-size: 24px;
+    color: var(--body);
+  }
+  .station__price-oct {
+    font: 700 10px/1 var(--font-sans);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+
+  .savings {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+    padding-top: 16px;
+    border-top: 1px solid var(--hairline-strong);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .savings__verb {
+    font: 700 11px/1 var(--font-sans);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--success);
+  }
+  .savings__verb--cost { color: var(--warning); }
+  .savings__amt {
+    font-family: var(--font-mono);
+    font-size: 16px;
+    color: var(--body-strong);
+    font-variant-numeric: tabular-nums;
+  }
+  .savings__cta {
+    font: 700 11px/1 var(--font-sans);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+  }
+  .savings__cta::after { content: '→'; font-family: var(--font-sans); }
+  .savings__cta:hover { color: var(--m-red); }
+
+  /* Footer */
+  .endmark {
+    text-align: center;
+    padding: 40px 0 24px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .endmark::before,
+  .endmark::after {
+    content: '';
+    display: inline-block;
+    width: 48px;
+    height: 1px;
+    background: var(--hairline);
+    vertical-align: middle;
+    margin: 0 16px;
+  }
+  .hidden-count {
+    text-align: center;
+    font-size: 13px;
+    color: var(--body);
+    font-style: italic;
+    font-weight: 300;
+    padding: 24px 0 0;
+  }
+
+  .footer {
+    background: var(--canvas);
+    border-top: 1px solid var(--hairline);
+    padding: 64px 24px 40px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+  .footer__bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+  }
+  .footer__brand {
+    font-family: var(--font-display);
+    color: var(--ink);
+    font-size: 18px;
+    letter-spacing: 1px;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .footer__links { display: flex; gap: 24px; }
+  .footer__links a { color: var(--muted); text-decoration: none; letter-spacing: 0.5px; }
+  .footer__links a:hover { color: var(--ink); }
+
+  /* Page-load animation */
+  @keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero__eyebrow, .hero__display, .hero__sub, .hero__metric-row {
+    animation: slide-up 800ms ease-out backwards;
+  }
+  .hero__display { animation-delay: 80ms; }
+  .hero__sub { animation-delay: 160ms; }
+  .hero__metric-row { animation-delay: 280ms; }
+
+  @media (max-width: 640px) {
+    .nav { padding: 0 16px; gap: 16px; }
+    .hero { padding: 64px 16px 48px; }
+    .section { padding: 64px 16px; }
+    .station { grid-template-columns: 40px 1fr auto; gap: 16px; }
+    .station__brand { font-size: 22px; }
+    .station__price-num { font-size: 34px; }
+    .section__head { font-size: 36px; }
+    .hero__metric-value { font-size: 28px; }
+  }
+
+  /* Preview banner */
+  .preview-banner {
+    background: var(--m-red);
+    color: var(--ink);
+    padding: 10px 16px;
+    font: 700 11px/1.3 var(--font-sans);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    text-align: center;
+  }
+  .preview-banner a { color: var(--ink); margin-left: 12px; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  M-edition preview — not the live app
+  <a href="/">← back to production</a>
+</div>
+
+<header class="nav">
+  <div class="nav__brand">
+    <span class="m-stripe--inline" aria-hidden="true"></span>
+    PUMP/M
+  </div>
+  <ul class="nav__menu">
+    <li class="is-active">Pumps</li>
+    <li>Atlas</li>
+    <li>Report</li>
+    <li>Garage</li>
+  </ul>
+  <div class="nav__right">
+    <span>EN-US</span>
+    <span>·</span>
+    <span>SIGN IN</span>
+  </div>
+</header>
+
+<div class="m-stripe" aria-hidden="true"></div>
+
+<section class="hero">
+  <div class="hero__eyebrow">
+    <span class="m-stripe--inline" aria-hidden="true"></span>
+    Fuel / Stop / Edition M
+  </div>
+  <h1 class="hero__display">
+    A price worth<br />
+    <em>driving</em> for.
+  </h1>
+  <p class="hero__sub">
+    Authoritative, pump-feed octane prices with net-savings math built in. No crowd reports.
+    No interstitials. Built for drivers who care which premium they're buying.
+  </p>
+
+  <div class="hero__metric-row">
+    <div class="hero__metric">
+      <div class="hero__metric-value">15 / 18</div>
+      <div class="hero__metric-label">Stations with premium</div>
+    </div>
+    <div class="hero__metric">
+      <div class="hero__metric-value">$5.30</div>
+      <div class="hero__metric-label">Cheapest premium · 5 mi</div>
+    </div>
+    <div class="hero__metric">
+      <div class="hero__metric-value">$1.27</div>
+      <div class="hero__metric-label">Top net savings vs closest</div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="section__header">
+    <h2 class="section__head">Pumps near you</h2>
+    <div class="section__counter">Showing <strong>15</strong> · within <strong>5 mi</strong></div>
+  </div>
+
+  <!-- Location / search / radius controls -->
+  <div class="controls">
+    <div class="controls__row">
+      <div class="control">
+        <div class="control__label">You are here</div>
+        <p class="control__value">Troy, NY</p>
+        <div class="control__hint">42.7012° N · 73.6940° W · GPS</div>
+      </div>
+      <div class="control">
+        <div class="control__label">Search a city</div>
+        <p class="control__value control__value--muted">Sedona, AZ ↗</p>
+        <div class="control__hint">Press ⏎ to look up by zip, city, or address</div>
+      </div>
+      <div class="control">
+        <div class="control__label">Radius</div>
+        <p class="control__value">5 MI</p>
+        <div class="control__hint">1 / 3 / 5 / 10 mi available</div>
+      </div>
+    </div>
+  </div>
+
+  <h3 style="font: 700 11px/1 var(--font-sans); letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 40px 0 12px;">Octane</h3>
+  <div class="octanes" role="tablist">
+    <button class="octane" role="tab" aria-selected="false">
+      <span class="octane__num">87</span>
+      <span class="octane__sub">Reg</span>
+    </button>
+    <button class="octane" role="tab" aria-selected="false">
+      <span class="octane__num">89</span>
+      <span class="octane__sub">Mid</span>
+    </button>
+    <button class="octane octane--prem" role="tab" aria-selected="true">
+      <span class="octane__num">91+</span>
+      <span class="octane__sub">Any Premium</span>
+    </button>
+    <button class="octane" role="tab" aria-selected="false">
+      <span class="octane__num">···</span>
+      <span class="octane__sub">More</span>
+    </button>
+  </div>
+
+  <div class="filter-row">
+    <span class="filter-row__label">Sort by</span>
+    <div class="filter-row__chips">
+      <button class="chip" aria-pressed="true">Cheapest</button>
+      <button class="chip" aria-pressed="false">Closest</button>
+    </div>
+  </div>
+
+  <!-- Stations -->
+  <div class="stations">
+
+    <article class="station station--cheapest">
+      <div class="station__rank">01</div>
+      <div class="station__body">
+        <h3 class="station__brand">
+          Sunoco
+          <span class="station__badge">★ Cheapest</span>
+        </h3>
+        <p class="station__address">125 Hoosick St, Troy, NY 12180</p>
+        <div class="station__meta">
+          <span>2.0 mi</span>
+          <span class="dot"></span>
+          <span>Live · Google Places</span>
+          <span class="dot"></span>
+          <span>Refreshed 4h ago</span>
+        </div>
+      </div>
+      <div class="station__price">
+        <div class="station__price-num">$5.<span class="station__price-frac">30</span></div>
+        <div class="station__price-oct">93 octane</div>
+      </div>
+      <div class="savings">
+        <span class="savings__verb">Save</span>
+        <span class="savings__amt">$1.27 – $1.93 / fill-up</span>
+        <button class="savings__cta">Directions</button>
+      </div>
+    </article>
+
+    <article class="station">
+      <div class="station__rank">02</div>
+      <div class="station__body">
+        <h3 class="station__brand">Stewart's Shops</h3>
+        <p class="station__address">110 Hoosick St, Troy, NY 12180</p>
+        <div class="station__meta">
+          <span>1.4 mi</span>
+          <span class="dot"></span>
+          <span>Live · Google Places</span>
+          <span class="dot"></span>
+          <span>Refreshed 11h ago</span>
+        </div>
+      </div>
+      <div class="station__price">
+        <div class="station__price-num">$5.<span class="station__price-frac">56</span></div>
+        <div class="station__price-oct">91 octane · M-override</div>
+      </div>
+      <div class="savings">
+        <span class="savings__verb">Save</span>
+        <span class="savings__amt">$0.80 – $1.20 / fill-up</span>
+        <button class="savings__cta">Directions</button>
+      </div>
+    </article>
+
+    <article class="station">
+      <div class="station__rank">03</div>
+      <div class="station__body">
+        <h3 class="station__brand">
+          Stewart's Shops
+          <span class="station__badge station__badge--closest">⌖ Closest</span>
+        </h3>
+        <p class="station__address">8 Vandenburgh Ave, Troy, NY 12180</p>
+        <div class="station__meta">
+          <span>0.5 mi</span>
+          <span class="dot"></span>
+          <span>Live · Google Places</span>
+          <span class="dot"></span>
+          <span>Refreshed 3 days ago</span>
+        </div>
+      </div>
+      <div class="station__price">
+        <div class="station__price-num">$5.<span class="station__price-frac">66</span></div>
+        <div class="station__price-oct">91 octane · baseline</div>
+      </div>
+    </article>
+
+    <article class="station">
+      <div class="station__rank">04</div>
+      <div class="station__body">
+        <h3 class="station__brand">Speedway</h3>
+        <p class="station__address">175 Hoosick St, Troy, NY 12180</p>
+        <div class="station__meta">
+          <span>2.1 mi</span>
+          <span class="dot"></span>
+          <span>Live · Google Places</span>
+          <span class="dot"></span>
+          <span class="stale">3d old · stale</span>
+        </div>
+      </div>
+      <div class="station__price">
+        <div class="station__price-num">$5.<span class="station__price-frac">40</span></div>
+        <div class="station__price-oct">93 octane</div>
+      </div>
+      <div class="savings">
+        <span class="savings__verb">Save</span>
+        <span class="savings__amt">$0.94 – $1.42 / fill-up</span>
+        <button class="savings__cta">Directions</button>
+      </div>
+    </article>
+
+    <article class="station">
+      <div class="station__rank">05</div>
+      <div class="station__body">
+        <h3 class="station__brand">Gulf</h3>
+        <p class="station__address">95 Hill St, Troy, NY 12180</p>
+        <div class="station__meta">
+          <span>1.8 mi</span>
+          <span class="dot"></span>
+          <span>Live · Google Places</span>
+          <span class="dot"></span>
+          <span>Refreshed 18h ago</span>
+        </div>
+      </div>
+      <div class="station__price">
+        <div class="station__price-num">$5.<span class="station__price-frac">40</span></div>
+        <div class="station__price-oct">93 octane</div>
+      </div>
+      <div class="savings">
+        <span class="savings__verb savings__verb--cost">Costs</span>
+        <span class="savings__amt">$0.21 – $0.31 extra / fill-up</span>
+        <button class="savings__cta">Directions</button>
+      </div>
+    </article>
+
+    <article class="station">
+      <div class="station__rank">06</div>
+      <div class="station__body">
+        <h3 class="station__brand">Cumberland Farms</h3>
+        <p class="station__address">625 Pawling Ave, Troy, NY 12180</p>
+        <div class="station__meta">
+          <span>3.4 mi</span>
+          <span class="dot"></span>
+          <span>Live · Google Places</span>
+          <span class="dot"></span>
+          <span>Refreshed 1 day ago</span>
+        </div>
+      </div>
+      <div class="station__price">
+        <div class="station__price-num">$5.<span class="station__price-frac">50</span></div>
+        <div class="station__price-oct">93 octane</div>
+      </div>
+      <div class="savings">
+        <span class="savings__verb">Save</span>
+        <span class="savings__amt">$0.49 – $0.74 / fill-up</span>
+        <button class="savings__cta">Directions</button>
+      </div>
+    </article>
+
+  </div>
+
+  <div class="hidden-count">
+    + 3 nearby stations without premium data yet
+  </div>
+
+  <div class="endmark">End of road</div>
+</section>
+
+<footer class="footer">
+  <div class="m-stripe" style="margin-bottom: 40px;" aria-hidden="true"></div>
+  <div class="footer__bar">
+    <span class="footer__brand">
+      <span class="m-stripe--inline" aria-hidden="true"></span>
+      PUMP/M
+    </span>
+    <nav class="footer__links">
+      <a href="#">About</a>
+      <a href="#">Methodology</a>
+      <a href="#">Pricing data</a>
+      <a href="#">Privacy</a>
+    </nav>
+    <span>© 2026 · Edition M preview</span>
+  </div>
+</footer>
+
+<script>
+  // Octane tab toggle (preview-only — no real wiring)
+  document.querySelectorAll('.octane').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.octane').forEach(b => b.setAttribute('aria-selected', 'false'));
+      btn.setAttribute('aria-selected', 'true');
+    });
+  });
+  document.querySelectorAll('.chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const group = btn.parentElement;
+      group.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-pressed', 'false'));
+      btn.setAttribute('aria-pressed', 'true');
+    });
+  });
+</script>
+
+</body>
+</html>
