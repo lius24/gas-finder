@@ -315,13 +315,35 @@ export default function ListScreen() {
     setError(null);
     const { status } = await Location.requestForegroundPermissionsAsync();
     if (status !== 'granted') {
-      setError('Location permission denied');
+      setError('Location permission denied — search for a city above.');
       setLoading(false);
       return;
     }
-    const loc = await Location.getCurrentPositionAsync({
-      accuracy: Location.Accuracy.Balanced,
-    });
+    // Desktop browsers commonly never resolve getCurrentPositionAsync: the
+    // user dismisses the permission prompt without choosing, or the browser
+    // is configured to "ask each time" and the popup is suppressed. There's
+    // no GPS to short-circuit it on desktop, so the call sits open forever
+    // and the Pumps tab spins indefinitely. Race against an 8s timeout.
+    let loc;
+    try {
+      loc = await Promise.race([
+        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error('Location request timed out')),
+            8000,
+          ),
+        ),
+      ]);
+    } catch (e) {
+      setError(
+        e instanceof Error && e.message.includes('timed out')
+          ? 'Couldn’t read your location — search for a city above.'
+          : 'Location unavailable — search for a city above.',
+      );
+      setLoading(false);
+      return;
+    }
     const next = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
     setSearchLabel(null);
     setSearchInput('');
