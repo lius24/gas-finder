@@ -80,20 +80,20 @@ export default function ListScreen() {
     [stations, octane],
   );
 
-  // In "any premium" mode an unpriced station offers nothing actionable —
-  // the user explicitly came to find a premium pump. Hide them, but keep
-  // a count so we can surface "+ N without premium data" at the bottom.
-  // Specific-octane tabs still show unpriced stations because there the
-  // "no price yet" state is a legitimate refresh-prompt for that station.
-  const hiddenInPremium = useMemo(() => {
-    if (octane !== 'premium') return 0;
-    return annotatedStations.filter((s) => s.price_cents === null).length;
-  }, [annotatedStations, octane]);
+  // Unpriced stations are noise on every tab — the user came to find a
+  // *price*, not to confirm a station exists. Hide them but surface a
+  // single footer line "+ N nearby stations without prices yet" so the
+  // count is still visible. The all-stations-unpriced empty state below
+  // still fires (it inspects the unfiltered list).
+  const hiddenUnpriced = useMemo(
+    () => annotatedStations.filter((s) => s.price_cents === null).length,
+    [annotatedStations],
+  );
 
-  const visibleAnnotated = useMemo<AnnotatedStation[]>(() => {
-    if (octane !== 'premium') return annotatedStations;
-    return annotatedStations.filter((s) => s.price_cents !== null);
-  }, [annotatedStations, octane]);
+  const visibleAnnotated = useMemo<AnnotatedStation[]>(
+    () => annotatedStations.filter((s) => s.price_cents !== null),
+    [annotatedStations],
+  );
 
   const sortedStations = useMemo(() => {
     const copy = [...visibleAnnotated];
@@ -598,11 +598,11 @@ export default function ListScreen() {
           }
           ListFooterComponent={
             <>
-              {hiddenInPremium > 0 ? (
+              {hiddenUnpriced > 0 ? (
                 <View style={styles.premiumHiddenNote}>
                   <Text style={styles.premiumHiddenText}>
-                    + {hiddenInPremium} nearby station
-                    {hiddenInPremium === 1 ? '' : 's'} without premium data yet
+                    + {hiddenUnpriced} nearby station
+                    {hiddenUnpriced === 1 ? '' : 's'} without prices yet
                   </Text>
                 </View>
               ) : null}
