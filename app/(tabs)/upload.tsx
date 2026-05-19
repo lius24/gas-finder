@@ -2,7 +2,16 @@ import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { useAuth } from '@/lib/auth';
@@ -27,29 +36,76 @@ export default function UploadScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
-  const capture = async () => {
-    setMessage(null);
-    setParsed(null);
+  // On web, expo-image-picker.launchCameraAsync isn't available — fall back
+  // to a native <input type="file" capture="environment"> which Chrome
+  // Android opens directly into the camera and desktop browsers open as a
+  // file picker. Same UX flow either way.
+  const pickPhotoUri = async (): Promise<string | null> => {
+    if (Platform.OS === 'web') {
+      return new Promise((resolve) => {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.setAttribute('capture', 'environment');
+        input.style.display = 'none';
+        const cleanup = () => {
+          input.remove();
+          window.removeEventListener('focus', onFocus);
+        };
+        const onFocus = () => {
+          // If the user dismisses the picker without selecting, no change
+          // event fires — resolve null on the next tick.
+          setTimeout(() => {
+            if (!input.files || input.files.length === 0) {
+              cleanup();
+              resolve(null);
+            }
+          }, 300);
+        };
+        input.onchange = () => {
+          const file = input.files?.[0];
+          if (!file) {
+            cleanup();
+            resolve(null);
+            return;
+          }
+          const url = URL.createObjectURL(file);
+          cleanup();
+          resolve(url);
+        };
+        window.addEventListener('focus', onFocus);
+        document.body.appendChild(input);
+        input.click();
+      });
+    }
 
     const camPerm = await ImagePicker.requestCameraPermissionsAsync();
     if (camPerm.status !== 'granted') {
       setMessage('Camera permission denied');
-      return;
+      return null;
     }
+    const result = await ImagePicker.launchCameraAsync({
+      mediaTypes: ['images'],
+      quality: 0.7,
+      base64: false,
+    });
+    if (result.canceled) return null;
+    return result.assets[0].uri;
+  };
+
+  const capture = async () => {
+    setMessage(null);
+    setParsed(null);
+
     const locPerm = await Location.requestForegroundPermissionsAsync();
     if (locPerm.status !== 'granted') {
       setMessage('Location permission needed to attach to a station');
       return;
     }
 
-    const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images'],
-      quality: 0.7,
-      base64: false,
-    });
-    if (result.canceled) return;
+    const uri = await pickPhotoUri();
+    if (!uri) return;
 
-    const uri = result.assets[0].uri;
     setPhotoUri(uri);
     setSubmitting(true);
 
@@ -143,7 +199,13 @@ export default function UploadScreen() {
         onPress={capture}
         disabled={submitting}>
         <Text style={styles.buttonText}>
-          {photoUri ? 'TAKE ANOTHER' : 'TAKE A PHOTO'}
+          {photoUri
+            ? Platform.OS === 'web'
+              ? 'PICK ANOTHER'
+              : 'TAKE ANOTHER'
+            : Platform.OS === 'web'
+              ? 'PICK A PHOTO'
+              : 'TAKE A PHOTO'}
         </Text>
       </Pressable>
     </SafeAreaView>
