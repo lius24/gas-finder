@@ -26,6 +26,7 @@ import { OctaneSelector } from '@/components/octane-selector';
 import { RadiusSelector } from '@/components/radius-selector';
 import { StationCard } from '@/components/station-card';
 import { useAuth } from '@/lib/auth';
+import { annotateWithSavings, type AnnotatedStation } from '@/lib/decision-math';
 import { listFavoriteIds } from '@/lib/favorites';
 import {
   DEFAULT_OCTANE,
@@ -74,8 +75,13 @@ export default function ListScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const annotatedStations = useMemo<AnnotatedStation[]>(
+    () => annotateWithSavings(stations, octane),
+    [stations, octane],
+  );
+
   const sortedStations = useMemo(() => {
-    const copy = [...stations];
+    const copy = [...annotatedStations];
     copy.sort((a, b) => {
       if (sort === 'cheapest') {
         const ap = a.price_cents;
@@ -88,7 +94,7 @@ export default function ListScreen() {
       return a.distance_meters - b.distance_meters;
     });
     return copy;
-  }, [stations, sort]);
+  }, [annotatedStations, sort]);
 
   const cheapestId = useMemo(() => {
     const priced = stations.filter((s) => s.price_cents !== null);

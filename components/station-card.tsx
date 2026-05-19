@@ -1,18 +1,28 @@
 import { Link } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { formatSavingsRange, type AnnotatedStation } from '@/lib/decision-math';
 import { formatDistance, formatPriceCents } from '@/lib/geo';
+import { staleLabel } from '@/lib/staleness';
 import { colors, fonts, radius, shadow, space } from '@/lib/theme';
 import type { StationWithPrice } from '@/lib/types';
 
 type Props = {
-  station: StationWithPrice;
+  station: StationWithPrice | AnnotatedStation;
   isCheapest?: boolean;
   isClosest?: boolean;
   favorited?: boolean;
 };
 
+function isAnnotated(s: StationWithPrice | AnnotatedStation): s is AnnotatedStation {
+  return 'savings' in s;
+}
+
 export function StationCard({ station, isCheapest, isClosest, favorited }: Props) {
+  const savings =
+    isAnnotated(station) && station.savings ? formatSavingsRange(station.savings) : null;
+  const positive =
+    isAnnotated(station) && station.savings ? station.savings.centralDollars > 0 : false;
   return (
     <Link
       href={{
@@ -66,7 +76,7 @@ export function StationCard({ station, isCheapest, isClosest, favorited }: Props
                   <Text style={styles.meta}>{sourceLabel(station.source_kind)}</Text>
                 </>
               ) : null}
-              {station.observed_at && staleLabel(station.observed_at) ? (
+              {staleLabel(station.observed_at) ? (
                 <>
                   <Text style={styles.metaDot}>·</Text>
                   <Text style={[styles.meta, styles.metaStale]}>
@@ -104,6 +114,24 @@ export function StationCard({ station, isCheapest, isClosest, favorited }: Props
             </Text>
           </View>
         </View>
+
+        {savings ? (
+          <View style={styles.savingsRow}>
+            <View
+              style={[
+                styles.savingsBadge,
+                positive ? styles.savingsBadgePositive : styles.savingsBadgeNegative,
+              ]}>
+              <Text
+                style={[
+                  styles.savingsText,
+                  positive ? styles.savingsTextPositive : styles.savingsTextNegative,
+                ]}>
+                {savings}
+              </Text>
+            </View>
+          </View>
+        ) : null}
       </Pressable>
     </Link>
   );
@@ -126,17 +154,6 @@ function sourceLabel(kind: StationWithPrice['source_kind']): string | null {
       return null;
     }
   }
-}
-
-function staleLabel(observedAt: string): string | null {
-  const then = new Date(observedAt).getTime();
-  if (Number.isNaN(then)) return null;
-  const hours = (Date.now() - then) / 3_600_000;
-  if (hours < 24) return null;
-  const days = Math.round(hours / 24);
-  if (days < 7) return `${days}d old`;
-  const weeks = Math.round(days / 7);
-  return `${weeks}w old`;
 }
 
 // Use the otherwise-unused `formatPriceCents` import on purpose — keeps the
@@ -287,4 +304,29 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     marginTop: 6,
   },
+  savingsRow: {
+    flexDirection: 'row',
+    marginTop: space.md,
+    paddingTop: space.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.paperEdge,
+  },
+  savingsBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  savingsBadgePositive: {
+    backgroundColor: colors.amber,
+  },
+  savingsBadgeNegative: {
+    backgroundColor: colors.dust,
+  },
+  savingsText: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 11,
+    letterSpacing: 1,
+  },
+  savingsTextPositive: { color: colors.ink },
+  savingsTextNegative: { color: colors.inkSoft },
 });
