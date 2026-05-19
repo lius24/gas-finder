@@ -53,3 +53,4 @@ app-example
 # deno (used by supabase functions local-dev check only — not deployed)
 deno.lock
 .vercel
+.gstack/
