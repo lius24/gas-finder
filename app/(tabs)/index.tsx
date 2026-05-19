@@ -80,8 +80,23 @@ export default function ListScreen() {
     [stations, octane],
   );
 
+  // In "any premium" mode an unpriced station offers nothing actionable —
+  // the user explicitly came to find a premium pump. Hide them, but keep
+  // a count so we can surface "+ N without premium data" at the bottom.
+  // Specific-octane tabs still show unpriced stations because there the
+  // "no price yet" state is a legitimate refresh-prompt for that station.
+  const hiddenInPremium = useMemo(() => {
+    if (octane !== 'premium') return 0;
+    return annotatedStations.filter((s) => s.price_cents === null).length;
+  }, [annotatedStations, octane]);
+
+  const visibleAnnotated = useMemo<AnnotatedStation[]>(() => {
+    if (octane !== 'premium') return annotatedStations;
+    return annotatedStations.filter((s) => s.price_cents !== null);
+  }, [annotatedStations, octane]);
+
   const sortedStations = useMemo(() => {
-    const copy = [...annotatedStations];
+    const copy = [...visibleAnnotated];
     copy.sort((a, b) => {
       if (sort === 'cheapest') {
         const ap = a.price_cents;
@@ -94,7 +109,7 @@ export default function ListScreen() {
       return a.distance_meters - b.distance_meters;
     });
     return copy;
-  }, [annotatedStations, sort]);
+  }, [visibleAnnotated, sort]);
 
   const cheapestId = useMemo(() => {
     const priced = stations.filter((s) => s.price_cents !== null);
@@ -583,6 +598,14 @@ export default function ListScreen() {
           }
           ListFooterComponent={
             <>
+              {hiddenInPremium > 0 ? (
+                <View style={styles.premiumHiddenNote}>
+                  <Text style={styles.premiumHiddenText}>
+                    + {hiddenInPremium} nearby station
+                    {hiddenInPremium === 1 ? '' : 's'} without premium data yet
+                  </Text>
+                </View>
+              ) : null}
               <View style={styles.endMarker}>
                 <View style={styles.dividerLine} />
                 <Text style={styles.endMarkerText}>END OF ROAD</Text>
@@ -895,6 +918,18 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: colors.inkFaint,
     letterSpacing: 3,
+  },
+  premiumHiddenNote: {
+    paddingHorizontal: space.lg,
+    paddingTop: space.md,
+    paddingBottom: 4,
+    alignItems: 'center',
+  },
+  premiumHiddenText: {
+    fontFamily: fonts.bodyItalic,
+    fontSize: 12,
+    color: colors.inkFaint,
+    letterSpacing: 0.3,
   },
   endMarker: {
     flexDirection: 'row',

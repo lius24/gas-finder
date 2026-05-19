@@ -10,6 +10,12 @@
 // (which ships in the mobile app bundle) could spam the Google Places API
 // and drain billing. Cron jobs send the header; see supabase/README.md.
 //
+// Body (optional): { "station_ids": ["uuid", ...] }
+// When provided, refreshes exactly that list instead of the zone selection.
+// Used for one-shot admin backfills when ingested stations live outside any
+// user's zone (Sedona/Phoenix seed pre-Troy zone existed). CRON_SECRET still
+// required, so this isn't an arbitrary-quota burner.
+//
 // Required secret:
 //   supabase secrets set GOOGLE_PLACES_API_KEY=...
 
@@ -56,11 +62,32 @@ Deno.serve(async (req) => {
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
   );
 
-  // Pull all stations that fall inside any user's zone.
-  const { data: zoneIds, error: zoneErr } = await supabase.rpc('stations_in_any_zone');
-  if (zoneErr) return jsonResponse({ error: zoneErr.message }, { status: 500 });
+  // Optional override: caller can pass an explicit station_ids array (admin
+  // backfill mode). Otherwise fall back to the zone-driven selection.
+  let explicitIds: string[] | null = null;
+  if (req.headers.get('content-length') && req.headers.get('content-length') !== '0') {
+    try {
+      const body = (await req.json()) as { station_ids?: unknown };
+      if (
+        Array.isArray(body.station_ids) &&
+        body.station_ids.every((x) => typeof x === 'string')
+      ) {
+        explicitIds = body.station_ids as string[];
+      }
+    } catch {
+      // Empty/invalid body is fine — treat as zone-driven invocation.
+    }
+  }
 
-  const ids = (zoneIds ?? []).map((r: { id: string }) => r.id);
+  let ids: string[];
+  if (explicitIds !== null) {
+    ids = explicitIds;
+  } else {
+    const { data: zoneIds, error: zoneErr } = await supabase.rpc('stations_in_any_zone');
+    if (zoneErr) return jsonResponse({ error: zoneErr.message }, { status: 500 });
+    ids = (zoneIds ?? []).map((r: { id: string }) => r.id);
+  }
+
   if (ids.length === 0) {
     return jsonResponse({ checked: 0, api_calls: 0, updated: 0, skipped: 0, demoted: 0 });
   }
