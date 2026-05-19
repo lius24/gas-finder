@@ -204,12 +204,12 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
     },
     stampText: {
       fontFamily: fonts.bodyBold,
-      color: colors.paper,
+      color: colors.onRust,
       fontSize: 10,
       letterSpacing: 1.5,
     },
     stampTextClosest: {
-      color: colors.ink,
+      color: colors.onAmber,
     },
     row: { flexDirection: 'row', alignItems: 'center', gap: space.md },
     left: { flex: 1 },
@@ -264,7 +264,7 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
     pumpDisplay: {
       flexDirection: 'row',
       alignItems: 'flex-end',
-      backgroundColor: colors.ink,
+      backgroundColor: colors.displaySurface,
       paddingHorizontal: 10,
       paddingTop: 6,
       paddingBottom: 4,
@@ -276,27 +276,27 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
     priceEmpty: {
       fontFamily: fonts.priceHeavy,
       fontSize: 22,
-      color: colors.amber,
+      color: colors.displayInk,
       lineHeight: 24,
       letterSpacing: 1,
     },
     priceWhole: {
       fontFamily: fonts.priceHeavy,
       fontSize: 22,
-      color: colors.amber,
+      color: colors.displayInk,
       lineHeight: 24,
     },
     priceDot: {
       fontFamily: fonts.priceHeavy,
       fontSize: 22,
-      color: colors.amber,
+      color: colors.displayInk,
       lineHeight: 24,
       marginHorizontal: 1,
     },
     priceFraction: {
       fontFamily: fonts.priceHeavy,
       fontSize: 16,
-      color: colors.amber,
+      color: colors.displayInk,
       lineHeight: 24,
       marginBottom: 1,
     },
@@ -330,7 +330,7 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
       fontSize: 11,
       letterSpacing: 1,
     },
-    savingsTextPositive: { color: colors.ink },
+    savingsTextPositive: { color: colors.onAmber },
     savingsTextNegative: { color: colors.inkSoft },
   });
 }

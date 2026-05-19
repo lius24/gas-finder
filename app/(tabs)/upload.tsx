@@ -254,12 +254,12 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     marginTop: 16,
     padding: space.lg,
     borderRadius: radius.lg,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.displaySurface,
   },
   parsedHeader: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,
-    color: colors.amber,
+    color: colors.displayInk,
     letterSpacing: 3,
     marginBottom: 10,
   },
@@ -274,12 +274,12 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
   parsedOctane: {
     fontFamily: fonts.priceHeavy,
     fontSize: 18,
-    color: colors.paper,
+    color: colors.onRust,
   },
   parsedPrice: {
     fontFamily: fonts.priceHeavy,
     fontSize: 22,
-    color: colors.amber,
+    color: colors.displayInk,
   },
   muted: {
     color: colors.inkFaint,
@@ -294,14 +294,14 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
   },
   button: {
     marginTop: space.xl,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.displaySurface,
     paddingVertical: 16,
     borderRadius: radius.md,
     alignItems: 'center',
   },
   btnPressed: { opacity: 0.85 },
   buttonText: {
-    color: colors.amber,
+    color: colors.displayInk,
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     letterSpacing: 3,
@@ -315,7 +315,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     marginBottom: 12,
   },
   stationPillText: {
-    color: colors.paper,
+    color: colors.onRust,
     fontFamily: fonts.bodyBold,
     fontSize: 10,
     letterSpacing: 2,
@@ -329,7 +329,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     backgroundColor: colors.rust,
   },
   settingsLinkText: {
-    color: colors.paper,
+    color: colors.onRust,
     fontFamily: fonts.bodyBold,
     fontSize: 11,
     letterSpacing: 2,

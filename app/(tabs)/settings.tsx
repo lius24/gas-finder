@@ -261,7 +261,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
       borderRadius: radius.md,
     },
     signOutText: {
-      color: colors.paper,
+      color: colors.onRust,
       fontFamily: fonts.bodyBold,
       fontSize: 11,
       letterSpacing: 2,
@@ -269,11 +269,11 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     signInButton: {
       paddingHorizontal: 14,
       paddingVertical: 10,
-      backgroundColor: colors.ink,
+      backgroundColor: colors.displaySurface,
       borderRadius: radius.md,
     },
     signInText: {
-      color: colors.amber,
+      color: colors.displayInk,
       fontFamily: fonts.bodyBold,
       fontSize: 11,
       letterSpacing: 2,

@@ -171,8 +171,8 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     alignItems: 'center',
   },
   cellActive: {
-    backgroundColor: colors.ink,
-    borderColor: colors.ink,
+    backgroundColor: colors.displaySurface,
+    borderColor: colors.displaySurface,
   },
   cellSecondary: {
     backgroundColor: colors.bg,
@@ -184,7 +184,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     color: colors.ink,
     letterSpacing: 0.3,
   },
-  numberActive: { color: colors.amber },
+  numberActive: { color: colors.displayInk },
   numberSecondary: { color: colors.inkSoft },
   label: {
     fontFamily: fonts.bodyMedium,
@@ -194,7 +194,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     marginTop: 2,
     textTransform: 'uppercase',
   },
-  labelActive: { color: colors.paper },
+  labelActive: { color: colors.displayInk, opacity: 0.85 },
 
   premiumCell: {
     flex: 1.6,
@@ -215,7 +215,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     color: colors.rust,
     letterSpacing: 0.3,
   },
-  premiumNumberActive: { color: colors.amber },
+  premiumNumberActive: { color: colors.onRust },
   premiumLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 8,
@@ -224,7 +224,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     marginTop: 2,
     textTransform: 'uppercase',
   },
-  premiumLabelActive: { color: colors.paper },
+  premiumLabelActive: { color: colors.onRust, opacity: 0.92 },
 
   moreCell: {
     width: 44,

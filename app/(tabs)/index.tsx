@@ -793,7 +793,7 @@ function makeStyles({ colors, fonts, radius: radii, space }: Theme) {
     textTransform: 'uppercase',
   },
   sortLabelActive: {
-    color: colors.paper,
+    color: colors.onRust,
     fontFamily: fonts.bodyBold,
   },
 
@@ -805,7 +805,7 @@ function makeStyles({ colors, fonts, radius: radii, space }: Theme) {
     backgroundColor: colors.rust,
   },
   linkButtonText: {
-    color: colors.paper,
+    color: colors.onRust,
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     letterSpacing: 1,
@@ -878,13 +878,13 @@ function makeStyles({ colors, fonts, radius: radii, space }: Theme) {
     lineHeight: 20,
   },
   locationActionPill: {
-    backgroundColor: colors.ink,
+    backgroundColor: colors.displaySurface,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 4,
   },
   locationActionText: {
-    color: colors.amber,
+    color: colors.displayInk,
     fontFamily: fonts.bodyBold,
     fontSize: 10,
     letterSpacing: 1.5,
@@ -925,7 +925,7 @@ function makeStyles({ colors, fonts, radius: radii, space }: Theme) {
     color: colors.inkSoft,
     maxWidth: 160,
   },
-  recentChipTextActive: { color: colors.ink, fontFamily: fonts.bodyBold },
+  recentChipTextActive: { color: colors.onAmber, fontFamily: fonts.bodyBold },
 
   divider: {
     flexDirection: 'row',

@@ -32,6 +32,17 @@ export type ThemeColors = {
   danger: string;
   good: string;
   shadow: string;
+  // "Display" slots are always dark-surface + bright-accent, regardless of
+  // whether the theme itself is light or dark. They back the pump-LCD price
+  // panel, the sign-in button, and the active-octane cell — places where
+  // the design intent is "inverse contrast" rather than "ink on paper."
+  displaySurface: string;
+  displayInk: string;
+  // Foreground colors for text/icons sitting on a rust or amber pill —
+  // computed per-theme so the stamp + savings-badge text is always legible
+  // regardless of which color the pill ends up being.
+  onRust: string;
+  onAmber: string;
 };
 
 export type ThemeFonts = {
@@ -126,6 +137,10 @@ const desertColors: ThemeColors = {
   danger: '#A52B1A',
   good: '#4A5D3E',
   shadow: 'rgba(40, 28, 16, 0.10)',
+  displaySurface: '#1C1814',
+  displayInk: '#D4882C',
+  onRust: '#FBF6ED',
+  onAmber: '#1C1814',
 };
 
 const desertFonts: ThemeFonts = {
@@ -167,8 +182,8 @@ const ferrariColors: ThemeColors = {
   inkFaint: '#969696',
   rust: '#da291c',
   rustDark: '#b01e0a',
-  amber: '#ffffff',     // No separate amber — Ferrari's only voltage is Rosso; price digits read in white
-  amberDark: '#d9d9d9',
+  amber: '#f6e500',     // Ferrari's accent-yellow — distinct from rust so "closest" + "cheapest" stay differentiable
+  amberDark: '#d6c700',
   moss: '#3a8a3a',
   sand: '#404040',
   dust: '#404040',
@@ -176,6 +191,11 @@ const ferrariColors: ThemeColors = {
   danger: '#f13a2c',
   good: '#03904a',
   shadow: 'rgba(0, 0, 0, 0.45)',
+  // Pump LCD reads as a high-contrast Rosso-on-near-black panel in Ferrari
+  displaySurface: '#0a0a0a',
+  displayInk: '#da291c',
+  onRust: '#ffffff',
+  onAmber: '#181818',
 };
 
 const ferrariFonts: ThemeFonts = {
@@ -226,6 +246,11 @@ const airtableColors: ThemeColors = {
   danger: '#aa2d00',
   good: '#0a2e0e',
   shadow: 'rgba(24, 29, 38, 0.08)',
+  // Pump LCD reads as a yellow-on-near-black callout in Airtable
+  displaySurface: '#181d26',
+  displayInk: '#f4d35e',
+  onRust: '#ffffff',
+  onAmber: '#181d26',
 };
 
 const airtableFonts: ThemeFonts = {

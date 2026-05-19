@@ -362,7 +362,7 @@ export default function StationDetail() {
         <Pressable
           style={({ pressed }) => [styles.primaryBtn, pressed && styles.btnPressed]}
           onPress={openDirections}>
-          <Ionicons name="navigate" size={16} color={colors.amber} />
+          <Ionicons name="navigate" size={16} color={colors.displayInk} />
           <Text style={styles.primaryBtnText}>GET DIRECTIONS</Text>
         </Pressable>
 
@@ -550,7 +550,7 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
 
   pumpPanel: {
     marginTop: space.lg,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.displaySurface,
     borderRadius: radius.lg,
     overflow: 'hidden',
     ...shadow.card,
@@ -564,7 +564,7 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
   pumpHeaderText: {
     fontFamily: fonts.bodyBold,
     fontSize: 10,
-    color: colors.amber,
+    color: colors.onRust,
     letterSpacing: 3,
   },
   pumpRow: {
@@ -582,10 +582,10 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
   pumpOctane: {
     fontFamily: fonts.priceHeavy,
     fontSize: 26,
-    color: colors.paper,
+    color: colors.onRust,
     letterSpacing: 1,
   },
-  pumpOctaneActive: { color: colors.amber },
+  pumpOctaneActive: { color: colors.displayInk },
   pumpOctaneLabel: {
     fontFamily: fonts.bodyBold,
     fontSize: 9,
@@ -601,20 +601,20 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
   priceWhole: {
     fontFamily: fonts.priceHeavy,
     fontSize: 32,
-    color: colors.amber,
+    color: colors.displayInk,
     lineHeight: 34,
   },
   priceDot: {
     fontFamily: fonts.priceHeavy,
     fontSize: 32,
-    color: colors.amber,
+    color: colors.displayInk,
     lineHeight: 34,
     marginHorizontal: 1,
   },
   priceFraction: {
     fontFamily: fonts.priceHeavy,
     fontSize: 22,
-    color: colors.amber,
+    color: colors.displayInk,
     lineHeight: 32,
     marginBottom: 1,
   },
@@ -633,7 +633,7 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
 
   primaryBtn: {
     marginTop: space.lg,
-    backgroundColor: colors.ink,
+    backgroundColor: colors.displaySurface,
     paddingVertical: 14,
     borderRadius: radius.md,
     flexDirection: 'row',
@@ -643,7 +643,7 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
     ...shadow.panel,
   },
   primaryBtnText: {
-    color: colors.amber,
+    color: colors.displayInk,
     fontFamily: fonts.bodyBold,
     fontSize: 13,
     letterSpacing: 3,
@@ -676,7 +676,7 @@ function makeStyles({ colors, fonts, radius, shadow, space }: Theme) {
     backgroundColor: colors.rust,
   },
   retryButtonText: {
-    color: colors.paper,
+    color: colors.onRust,
     fontFamily: fonts.bodyBold,
     fontSize: 12,
     letterSpacing: 2,

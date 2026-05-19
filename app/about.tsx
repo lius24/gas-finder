@@ -187,7 +187,7 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     },
 
     formulaCard: {
-      backgroundColor: colors.ink,
+      backgroundColor: colors.displaySurface,
       borderRadius: radius.lg,
       padding: space.lg,
       marginBottom: space.xl,
@@ -195,14 +195,14 @@ function makeStyles({ colors, fonts, radius, space }: Theme) {
     formulaLabel: {
       fontFamily: fonts.bodyBold,
       fontSize: 10,
-      color: colors.amber,
+      color: colors.displayInk,
       letterSpacing: 2,
       marginBottom: 10,
     },
     formula: {
       fontFamily: fonts.numeral,
       fontSize: 13,
-      color: colors.paper,
+      color: colors.onRust,
       lineHeight: 22,
     },
 
