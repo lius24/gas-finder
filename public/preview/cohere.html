@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pump · Enterprise edition (preview)</title>
+<meta name="theme-color" content="#ffffff" />
+<!--
+  Cohere-flavored redesign: stark white editorial + deep green-black product
+  band; monospaced-feel display headlines; soft mineral surfaces; precise UI
+  text. Unica77 substituted with Manrope, mono display via JetBrains Mono.
+  rm public/preview/cohere.html to roll back.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Manrope:wght@300;400;500;600;700&display=swap" />
+<style>
+  :root {
+    --ink: #212121;
+    --body: #4a4a52;
+    --muted: #93939f;
+    --slate: #75758a;
+    --body-muted: #616161;
+    --canvas: #ffffff;
+    --soft-stone: #eeece7;
+    --pale-green: #edfce9;
+    --pale-blue: #f1f5ff;
+    --hairline: #d9d9dd;
+    --hairline-soft: #f2f2f2;
+    --deep-green: #003c33;
+    --dark-navy: #071829;
+    --action-blue: #1863dc;
+    --focus-blue: #4c6ee6;
+    --coral: #ff7759;
+
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --sans: 'Manrope', -apple-system, sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); }
+  body { font-family: var(--sans); font-weight: 400; line-height: 1.5; -webkit-font-smoothing: antialiased; }
+
+  /* Nav */
+  .nav {
+    display: flex; align-items: center; padding: 18px 32px;
+    border-bottom: 1px solid var(--hairline);
+    position: sticky; top: 0; background: var(--canvas); z-index: 50;
+    backdrop-filter: blur(10px);
+  }
+  .brand {
+    font-family: var(--mono); font-size: 18px; font-weight: 500;
+    letter-spacing: -0.02em; color: var(--ink);
+    display: inline-flex; align-items: center; gap: 10px;
+  }
+  .brand .dot { width: 10px; height: 10px; background: var(--deep-green); border-radius: 2px; }
+  .nav__menu { margin: 0 0 0 40px; padding: 0; list-style: none; display: flex; gap: 28px; font-size: 14px; color: var(--body); }
+  .nav__menu li { cursor: pointer; }
+  .nav__menu li.is-active { color: var(--ink); font-weight: 600; }
+  .nav__right { margin-left: auto; display: flex; gap: 12px; align-items: center; font-size: 14px; }
+  .nav__right a { color: var(--body); text-decoration: none; }
+  .btn {
+    background: var(--ink); color: #fff;
+    padding: 10px 18px; border-radius: 8px;
+    font: 600 14px/1 var(--sans); border: none; cursor: pointer;
+    transition: background 200ms ease;
+  }
+  .btn:hover { background: #000; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--hairline); }
+  .btn.ghost:hover { background: var(--soft-stone); }
+  @media (max-width: 720px) { .nav__menu { display: none; } }
+
+  /* Hero */
+  .hero {
+    padding: 96px 32px 64px;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+  .hero__kicker {
+    font-family: var(--mono); font-size: 12px;
+    text-transform: uppercase; letter-spacing: 0.15em;
+    color: var(--deep-green);
+    margin: 0 0 16px;
+  }
+  .hero__title {
+    font-family: var(--mono);
+    font-size: clamp(40px, 6.8vw, 84px);
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+    font-weight: 500;
+    margin: 0 0 24px;
+    color: var(--ink);
+  }
+  .hero__title .accent { color: var(--deep-green); }
+  .hero__lede {
+    font-size: 19px; color: var(--body-muted); max-width: 620px; line-height: 1.5;
+    margin: 0 0 32px;
+  }
+  .hero__cta-row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* Product band — deep-green strip with quick metrics */
+  .band {
+    background: var(--deep-green); color: #fff;
+    border-radius: 20px;
+    padding: 56px;
+    margin: 32px 32px 0;
+    max-width: 1200px;
+    box-sizing: border-box;
+    margin-left: auto; margin-right: auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 32px;
+  }
+  .band__cell { }
+  .band__num {
+    font-family: var(--mono);
+    font-size: 48px; line-height: 1; font-weight: 500;
+    letter-spacing: -0.04em;
+    margin: 0 0 12px;
+  }
+  .band__num .unit { color: rgba(255,255,255,0.5); font-weight: 400; }
+  .band__num .accent { color: var(--coral); }
+  .band__label {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.5;
+  }
+
+  /* Section base */
+  section { padding: 80px 32px; }
+  .section__inner { max-width: 1200px; margin: 0 auto; }
+  .section__head {
+    margin-bottom: 48px;
+  }
+  .section__head h2 {
+    font-family: var(--mono);
+    font-size: 36px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    line-height: 1.1;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .section__head .sub {
+    color: var(--body-muted); font-size: 17px; max-width: 600px; margin: 0;
+  }
+
+  /* Octane tabs — mineral surface, no fills */
+  .tabs {
+    display: flex; gap: 2px; background: var(--soft-stone);
+    border-radius: 14px; padding: 4px; margin-bottom: 32px;
+    width: fit-content;
+  }
+  .tab {
+    border: none; background: transparent;
+    color: var(--body); padding: 10px 18px;
+    font: 500 13px/1 var(--sans);
+    border-radius: 10px; cursor: pointer;
+    transition: all 200ms ease;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { background: var(--canvas); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+  .tab.prem[aria-selected="true"] { background: var(--deep-green); color: #fff; }
+
+  /* Filter row */
+  .filter-row { display: flex; gap: 24px; align-items: baseline; font-size: 14px; color: var(--muted); margin-bottom: 32px; flex-wrap: wrap; }
+  .filter-row a { color: var(--body); text-decoration: none; }
+  .filter-row a.is-active { color: var(--deep-green); font-weight: 600; }
+
+  /* Station list — soft mineral cards in editorial flow */
+  .stations { display: flex; flex-direction: column; gap: 16px; }
+  .station {
+    background: var(--canvas);
+    border: 1px solid var(--hairline);
+    border-radius: 18px;
+    padding: 28px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 28px;
+    align-items: center;
+    transition: border-color 240ms ease, transform 240ms ease;
+    cursor: pointer;
+  }
+  .station:hover { border-color: var(--ink); transform: translateY(-1px); }
+  .station.cheap {
+    background: var(--soft-stone);
+    border-color: var(--soft-stone);
+  }
+  .station__rank-row {
+    display: flex; gap: 12px; align-items: center; margin-bottom: 8px;
+  }
+  .station__rank {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--muted); letter-spacing: 0;
+  }
+  .station__chip {
+    font: 700 11px/1 var(--mono); letter-spacing: -0.04em;
+    padding: 5px 9px; border-radius: 6px;
+    background: var(--deep-green); color: #fff;
+  }
+  .station__chip.closest { background: var(--coral); }
+  .station__brand {
+    font-family: var(--mono); font-size: 26px;
+    font-weight: 500; line-height: 1.1; letter-spacing: -0.03em;
+    margin: 0 0 4px;
+  }
+  .station__addr {
+    color: var(--body-muted); font-size: 14px; margin: 0;
+  }
+  .station__meta {
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+    margin-top: 8px;
+    display: flex; gap: 12px; flex-wrap: wrap;
+  }
+  .station__meta .stale { color: #b3741a; }
+  .station__price {
+    text-align: right;
+    min-width: 160px;
+  }
+  .station__price-num {
+    font-family: var(--mono);
+    font-size: 44px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.04em;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .station__price-num .frac { font-size: 26px; color: var(--muted); font-weight: 500; }
+  .station__price-oct {
+    font-family: var(--mono); font-size: 12px;
+    color: var(--muted); margin-top: 4px;
+    letter-spacing: 0;
+  }
+  .station.cheap .station__price-num { color: var(--deep-green); }
+
+  .station__savings {
+    grid-column: 1 / -1;
+    border-top: 1px solid var(--hairline);
+    padding-top: 16px;
+    display: flex; align-items: center; gap: 16px;
+    flex-wrap: wrap;
+  }
+  .station.cheap .station__savings { border-color: rgba(0,60,51,0.18); }
+  .station__savings-tag {
+    background: var(--pale-green); color: var(--deep-green);
+    padding: 5px 10px; border-radius: 6px;
+    font: 700 12px/1 var(--mono);
+  }
+  .station__savings-tag.cost { background: rgba(255,119,89,0.16); color: #a83a1d; }
+  .station__savings-amt {
+    font-family: var(--mono); font-size: 14px; color: var(--body);
+  }
+  .station__savings-cta {
+    margin-left: auto;
+    color: var(--action-blue);
+    font-weight: 600; font-size: 14px;
+    text-decoration: none;
+  }
+  .station__savings-cta::after { content: ' →'; }
+
+  /* Editorial methodology block */
+  .method {
+    background: var(--soft-stone);
+    border-radius: 24px;
+    padding: 56px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 48px;
+    align-items: center;
+    margin-top: 64px;
+  }
+  @media (max-width: 820px) { .method { grid-template-columns: 1fr; padding: 32px; } }
+  .method h3 {
+    font-family: var(--mono); font-size: 32px;
+    font-weight: 500; line-height: 1.1; letter-spacing: -0.03em;
+    margin: 0 0 16px;
+  }
+  .method p { color: var(--body-muted); font-size: 16px; margin: 0; line-height: 1.55; }
+  .method__formula {
+    background: var(--canvas);
+    border-radius: 14px;
+    padding: 24px;
+    border: 1px solid var(--hairline);
+    font-family: var(--mono);
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--ink);
+  }
+  .method__formula .k { color: var(--deep-green); font-weight: 700; }
+  .method__formula .v { color: var(--muted); }
+
+  /* Footer */
+  .footer { background: var(--ink); color: #fff; padding: 64px 32px 32px; }
+  .footer__inner { max-width: 1200px; margin: 0 auto; }
+  .footer__big {
+    font-family: var(--mono); font-size: clamp(40px, 6vw, 72px);
+    line-height: 1.05; letter-spacing: -0.03em; font-weight: 500; margin: 0 0 48px;
+  }
+  .footer__bar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding-top: 24px; border-top: 1px solid rgba(255,255,255,0.15); font-size: 13px; color: rgba(255,255,255,0.6); }
+  .footer__bar a { color: rgba(255,255,255,0.7); margin-right: 20px; text-decoration: none; }
+  .footer__bar a:hover { color: #fff; }
+
+  .preview-banner { background: var(--deep-green); color: #fff; padding: 10px 16px; font: 600 12px/1.3 var(--sans); text-align: center; letter-spacing: -0.1px; }
+  .preview-banner a { color: #fff; margin-left: 12px; text-decoration: underline; }
+
+  @keyframes rise { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .hero__kicker, .hero__title, .hero__lede, .hero__cta-row, .band { animation: rise 750ms ease-out backwards; }
+  .hero__title { animation-delay: 60ms; }
+  .hero__lede { animation-delay: 140ms; }
+  .hero__cta-row { animation-delay: 220ms; }
+  .band { animation-delay: 320ms; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  Enterprise edition preview — not the live app
+  <a href="/">back to production</a>
+</div>
+
+<header class="nav">
+  <div class="brand"><span class="dot"></span>pump/<span style="color: var(--deep-green); font-weight: 600;">v1</span></div>
+  <ul class="nav__menu">
+    <li class="is-active">Pumps</li>
+    <li>Atlas</li>
+    <li>Report</li>
+    <li>Garage</li>
+    <li>Models</li>
+    <li>Docs</li>
+  </ul>
+  <div class="nav__right">
+    <a href="#">Sign in</a>
+    <button class="btn">Get started</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <p class="hero__kicker">Premium fuel intelligence · live</p>
+    <h1 class="hero__title">
+      Premium pumps, ranked<br/>
+      by <span class="accent">net dollars saved.</span>
+    </h1>
+    <p class="hero__lede">
+      Authoritative pump-feed prices, observed and timestamped by Google Places.
+      Decision math built in. Designed for drivers who treat fuel as an operating cost.
+    </p>
+    <div class="hero__cta-row">
+      <button class="btn">Open the dashboard</button>
+      <button class="btn ghost">Read the methodology</button>
+    </div>
+  </div>
+</section>
+
+<div class="band">
+  <div class="band__cell">
+    <p class="band__num">15<span class="unit"> / 18</span></p>
+    <p class="band__label">stations with premium readings inside a 5 mi radius of Troy, NY.</p>
+  </div>
+  <div class="band__cell">
+    <p class="band__num">$5.30</p>
+    <p class="band__label">cheapest 93 octane observed in the last 24 hours.</p>
+  </div>
+  <div class="band__cell">
+    <p class="band__num"><span class="accent">+$1.27</span></p>
+    <p class="band__label">net savings vs the closest pump after extra-drive cost.</p>
+  </div>
+</div>
+
+<section>
+  <div class="section__inner">
+    <div class="section__head">
+      <h2>premium pumps near you.</h2>
+      <p class="sub">Each row is a single observation from Google Places, mapped to its octane by brand and longitude, with net savings computed against the closest priced baseline.</p>
+    </div>
+
+    <div class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="false">87</button>
+      <button class="tab" role="tab" aria-selected="false">89</button>
+      <button class="tab prem" role="tab" aria-selected="true">91+ Any premium</button>
+      <button class="tab" role="tab" aria-selected="false">More</button>
+    </div>
+
+    <div class="filter-row">
+      <span>Sort</span>
+      <a href="#" class="is-active">Cheapest</a>
+      <a href="#">Closest</a>
+      <span style="margin-left: 24px;">Radius</span>
+      <a href="#">1 mi</a><a href="#">3 mi</a><a href="#" class="is-active">5 mi</a><a href="#">10 mi</a>
+    </div>
+
+    <div class="stations">
+
+      <article class="station cheap">
+        <div>
+          <div class="station__rank-row">
+            <span class="station__rank">[01]</span>
+            <span class="station__chip">cheapest</span>
+          </div>
+          <h3 class="station__brand">Sunoco</h3>
+          <p class="station__addr">125 Hoosick St, Troy, NY 12180 · 2.0 mi</p>
+          <div class="station__meta">
+            <span>source: google · live</span>
+            <span>observed_at: 2026-05-19T05:30Z</span>
+          </div>
+        </div>
+        <div class="station__price">
+          <div class="station__price-num">$5.<span class="frac">30</span></div>
+          <div class="station__price-oct">octane: 93</div>
+        </div>
+        <div class="station__savings">
+          <span class="station__savings-tag">save</span>
+          <span class="station__savings-amt">$1.27 – $1.93 per fill-up</span>
+          <a href="#" class="station__savings-cta">Directions</a>
+        </div>
+      </article>
+
+      <article class="station">
+        <div>
+          <div class="station__rank-row">
+            <span class="station__rank">[02]</span>
+          </div>
+          <h3 class="station__brand">Stewart's Shops</h3>
+          <p class="station__addr">110 Hoosick St, Troy, NY · 1.4 mi</p>
+          <div class="station__meta">
+            <span>source: google · live</span>
+            <span>observed_at: 2026-05-18T22:26Z</span>
+          </div>
+        </div>
+        <div class="station__price">
+          <div class="station__price-num">$5.<span class="frac">56</span></div>
+          <div class="station__price-oct">octane: 91 (brand override)</div>
+        </div>
+        <div class="station__savings">
+          <span class="station__savings-tag">save</span>
+          <span class="station__savings-amt">$0.80 – $1.20 per fill-up</span>
+          <a href="#" class="station__savings-cta">Directions</a>
+        </div>
+      </article>
+
+      <article class="station">
+        <div>
+          <div class="station__rank-row">
+            <span class="station__rank">[03]</span>
+            <span class="station__chip closest">closest · baseline</span>
+          </div>
+          <h3 class="station__brand">Stewart's Shops</h3>
+          <p class="station__addr">8 Vandenburgh Ave, Troy, NY · 0.5 mi</p>
+          <div class="station__meta">
+            <span>source: google · live</span>
+            <span>observed_at: 2026-05-16T15:58Z</span>
+          </div>
+        </div>
+        <div class="station__price">
+          <div class="station__price-num">$5.<span class="frac">66</span></div>
+          <div class="station__price-oct">octane: 91 · baseline</div>
+        </div>
+      </article>
+
+      <article class="station">
+        <div>
+          <div class="station__rank-row">
+            <span class="station__rank">[04]</span>
+          </div>
+          <h3 class="station__brand">Speedway</h3>
+          <p class="station__addr">175 Hoosick St, Troy, NY · 2.1 mi</p>
+          <div class="station__meta">
+            <span>source: google · <span class="stale">3d old · stale</span></span>
+          </div>
+        </div>
+        <div class="station__price">
+          <div class="station__price-num">$5.<span class="frac">40</span></div>
+          <div class="station__price-oct">octane: 93</div>
+        </div>
+        <div class="station__savings">
+          <span class="station__savings-tag">save</span>
+          <span class="station__savings-amt">$0.94 – $1.42 per fill-up</span>
+          <a href="#" class="station__savings-cta">Directions</a>
+        </div>
+      </article>
+
+      <article class="station">
+        <div>
+          <div class="station__rank-row">
+            <span class="station__rank">[05]</span>
+          </div>
+          <h3 class="station__brand">Gulf</h3>
+          <p class="station__addr">95 Hill St, Troy, NY · 1.8 mi</p>
+          <div class="station__meta">
+            <span>source: google · live</span>
+          </div>
+        </div>
+        <div class="station__price">
+          <div class="station__price-num">$5.<span class="frac">40</span></div>
+          <div class="station__price-oct">octane: 93</div>
+        </div>
+        <div class="station__savings">
+          <span class="station__savings-tag cost">costs</span>
+          <span class="station__savings-amt">$0.21 – $0.31 extra per fill-up</span>
+          <a href="#" class="station__savings-cta">Directions</a>
+        </div>
+      </article>
+
+      <article class="station">
+        <div>
+          <div class="station__rank-row">
+            <span class="station__rank">[06]</span>
+          </div>
+          <h3 class="station__brand">Cumberland Farms</h3>
+          <p class="station__addr">625 Pawling Ave, Troy, NY · 3.4 mi</p>
+          <div class="station__meta">
+            <span>source: google · live</span>
+          </div>
+        </div>
+        <div class="station__price">
+          <div class="station__price-num">$5.<span class="frac">50</span></div>
+          <div class="station__price-oct">octane: 93</div>
+        </div>
+        <div class="station__savings">
+          <span class="station__savings-tag">save</span>
+          <span class="station__savings-amt">$0.49 – $0.74 per fill-up</span>
+          <a href="#" class="station__savings-cta">Directions</a>
+        </div>
+      </article>
+
+    </div>
+
+    <p style="color: var(--muted); font-size: 14px; margin-top: 24px; font-family: var(--mono);">
+      // + 3 nearby stations without premium data yet
+    </p>
+
+    <div class="method">
+      <div>
+        <h3>how the math works.</h3>
+        <p>
+          For each candidate station, the gross savings (price difference × tank size) is reduced by the
+          drive cost (extra round-trip miles ÷ mpg × the candidate's own price). Tank and mpg default to 12 gal
+          / 25 mpg; renders as a range to absorb the assumption.
+        </p>
+      </div>
+      <pre class="method__formula"><span class="k">net_savings</span> = (<span class="v">baseline_price</span> − <span class="v">station_price</span>) × <span class="v">tank</span>
+              − (<span class="v">extra_miles</span> / <span class="v">mpg</span>) × <span class="v">station_price</span></pre>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer__inner">
+    <h2 class="footer__big">premium fuel,<br/>fully observed.</h2>
+    <div class="footer__bar">
+      <span style="font-family: var(--mono); color: #fff; font-weight: 500;">pump/v1</span>
+      <nav>
+        <a href="#">docs</a><a href="#">methodology</a><a href="#">api</a><a href="#">status</a><a href="#">privacy</a>
+      </nav>
+      <span>© 2026 · Enterprise preview</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', 'false'));
+    t.setAttribute('aria-selected', 'true');
+  }));
+</script>
+
+</body>
+</html>

@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pump · Preview gallery</title>
+<meta name="theme-color" content="#0a0a0a" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Manrope:wght@400;500;600;700&display=swap" />
+<style>
+  :root {
+    --ink: #0a0a0a;
+    --body: #4a4a4a;
+    --muted: #7a7a7a;
+    --canvas: #f7f5ef;
+    --card-hairline: rgba(0,0,0,0.08);
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); }
+  body { font-family: 'Manrope', -apple-system, sans-serif; line-height: 1.5; -webkit-font-smoothing: antialiased; min-height: 100vh; }
+
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 64px 24px 96px; }
+  .head { margin-bottom: 56px; }
+  .kicker { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--muted); margin: 0 0 12px; }
+  .title { font-family: 'Fraunces', Georgia, serif; font-size: clamp(40px, 6vw, 76px); font-weight: 600; line-height: 1; letter-spacing: -0.04em; margin: 0 0 16px; }
+  .title em { font-style: italic; font-weight: 500; }
+  .sub { font-size: 18px; color: var(--body); max-width: 640px; line-height: 1.5; margin: 0; }
+  .back { display: inline-block; margin-bottom: 32px; color: var(--muted); text-decoration: none; font-size: 14px; }
+  .back:hover { color: var(--ink); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 18px; }
+  .card {
+    display: block; text-decoration: none; color: inherit;
+    background: #fff; border: 1px solid var(--card-hairline); border-radius: 18px;
+    overflow: hidden; transition: transform 240ms ease, box-shadow 240ms ease;
+    position: relative;
+  }
+  .card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.08); }
+  .card__preview { aspect-ratio: 4/3; position: relative; overflow: hidden; }
+  .card__body { padding: 20px; }
+  .card__name { font-family: 'Fraunces', serif; font-size: 22px; font-weight: 600; line-height: 1; margin: 0 0 4px; letter-spacing: -0.02em; }
+  .card__name em { font-style: italic; }
+  .card__desc { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.4; }
+
+  /* Per-preview mini visuals */
+  .pv-bmw { background: #000; }
+  .pv-bmw .stripe { position: absolute; top: 24px; left: 24px; right: 24px; height: 3px; background: linear-gradient(to right, #0066b1 0 33.33%, #1c69d4 33.33% 66.66%, #e22718 66.66% 100%); }
+  .pv-bmw .heading { position: absolute; top: 50%; left: 24px; right: 24px; transform: translateY(-50%); font-family: 'Anton', 'Impact', sans-serif; color: #fff; font-size: 56px; line-height: 0.9; letter-spacing: -1px; text-transform: uppercase; }
+
+  .pv-ferrari { background: #181818; position: relative; }
+  .pv-ferrari::before { content: ''; position: absolute; inset: 0; background: radial-gradient(400px 200px at 90% -10%, rgba(218,41,28,0.4), transparent 60%); }
+  .pv-ferrari .heading { position: absolute; top: 40%; left: 24px; right: 24px; transform: translateY(-50%); color: #fff; font-weight: 500; font-size: 36px; line-height: 1.05; letter-spacing: -0.04em; }
+  .pv-ferrari .heading em { font-style: italic; font-weight: 400; color: rgba(255,255,255,0.9); }
+  .pv-ferrari .rosso { position: absolute; bottom: 24px; left: 24px; color: #da291c; font-size: 11px; font-weight: 600; letter-spacing: 1.4px; text-transform: uppercase; }
+  .pv-ferrari .rosso::before { content: ''; display: inline-block; width: 24px; height: 1px; background: #da291c; vertical-align: middle; margin-right: 8px; }
+
+  .pv-apple { background: #fff; position: relative; }
+  .pv-apple .gnav { background: #000; color: #fff; height: 28px; display: flex; align-items: center; justify-content: center; font-size: 11px; }
+  .pv-apple .heading { padding: 28px 24px 12px; font-size: 30px; font-weight: 600; line-height: 1.05; letter-spacing: -0.02em; color: #1d1d1f; text-align: center; }
+  .pv-apple .heading em { font-style: normal; color: #0066cc; }
+  .pv-apple .pill { display: block; margin: 0 auto; background: #0066cc; color: #fff; padding: 8px 18px; border-radius: 9999px; font-size: 12px; font-weight: 500; width: fit-content; }
+  .pv-apple .tile { margin: 16px 24px 0; background: #f5f5f7; border-radius: 12px; padding: 16px; text-align: center; }
+  .pv-apple .tile .p { font-size: 36px; font-weight: 600; letter-spacing: -1px; color: #1d1d1f; line-height: 1; }
+  .pv-apple .tile .m { font-size: 11px; color: #7a7a7a; margin-top: 4px; }
+
+  .pv-mintlify { background: linear-gradient(180deg, #87a8c8 0%, #f5e9d8 70%, #ffffff 100%); position: relative; }
+  .pv-mintlify::before { content: ''; position: absolute; inset: 0; background: radial-gradient(220px 100px at 20% 50%, rgba(255,255,255,0.7), transparent 70%), radial-gradient(180px 80px at 75% 30%, rgba(255,255,255,0.6), transparent 70%); }
+  .pv-mintlify .heading { position: relative; text-align: center; padding: 30px 24px 0; font-size: 28px; font-weight: 600; line-height: 1; letter-spacing: -0.03em; color: #0a0a0a; }
+  .pv-mintlify .heading em { font-style: normal; color: #00b48a; }
+  .pv-mintlify .pill { display: block; margin: 16px auto 0; background: #0a0a0a; color: #fff; padding: 7px 18px; border-radius: 9999px; font-size: 11px; font-weight: 500; width: fit-content; position: relative; }
+  .pv-mintlify .terminal { position: absolute; bottom: 14px; left: 16px; right: 16px; background: #fff; border-radius: 8px; padding: 8px 10px; font-family: ui-monospace, monospace; font-size: 10px; color: #444; box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+  .pv-mintlify .terminal .green { color: #00b48a; font-weight: 700; }
+
+  .pv-clay { background: #fffaf0; position: relative; overflow: hidden; }
+  .pv-clay .o1 { position: absolute; width: 140px; height: 140px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ff8aaf, #ff4d8b 50%, #d63969 100%); box-shadow: inset -22px -28px 40px rgba(0,0,0,0.2), inset 16px 16px 30px rgba(255,255,255,0.55); top: -30px; left: -30px; }
+  .pv-clay .o2 { position: absolute; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #d6c5f7, #b8a4ed 55%, #7e60c6 100%); box-shadow: inset -14px -18px 28px rgba(0,0,0,0.18), inset 10px 10px 18px rgba(255,255,255,0.5); top: 16px; right: -10px; }
+  .pv-clay .o3 { position: absolute; width: 60px; height: 60px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffd1b1, #ffb084 60%, #d97a3f 100%); box-shadow: inset -8px -10px 16px rgba(0,0,0,0.18), inset 6px 6px 12px rgba(255,255,255,0.5); bottom: 16px; left: 28%; }
+  .pv-clay .heading { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: 'Fraunces', serif; font-size: 32px; font-weight: 600; line-height: 0.95; letter-spacing: -0.04em; color: #0a0a0a; text-align: center; width: 80%; }
+  .pv-clay .heading em { font-style: italic; color: #d63969; font-weight: 500; }
+
+  .pv-cohere { background: #fff; position: relative; }
+  .pv-cohere .heading { padding: 28px 24px 12px; font-family: ui-monospace, 'JetBrains Mono', monospace; font-size: 24px; font-weight: 500; line-height: 1.05; letter-spacing: -0.03em; color: #212121; }
+  .pv-cohere .heading em { font-style: normal; color: #003c33; }
+  .pv-cohere .band { position: absolute; bottom: 14px; left: 16px; right: 16px; background: #003c33; color: #fff; padding: 14px 18px; border-radius: 12px; }
+  .pv-cohere .band .v { font-family: ui-monospace, monospace; font-size: 28px; font-weight: 700; letter-spacing: -0.04em; line-height: 1; }
+  .pv-cohere .band .v .acc { color: #ff7759; }
+  .pv-cohere .band .l { font-size: 10px; color: rgba(255,255,255,0.7); margin-top: 6px; }
+
+  .pv-airtable { background: #fff; position: relative; }
+  .pv-airtable .heading { padding: 28px 24px 0; font-size: 28px; font-weight: 600; line-height: 1.05; letter-spacing: -0.025em; color: #181d26; }
+  .pv-airtable .heading em { font-style: normal; color: #aa2d00; text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 4px; }
+  .pv-airtable .feature { position: absolute; bottom: 14px; left: 16px; right: 16px; background: #aa2d00; color: #fff; border-radius: 12px; padding: 16px; display: flex; align-items: center; justify-content: space-between; }
+  .pv-airtable .feature .b { font-size: 14px; font-weight: 600; }
+  .pv-airtable .feature .b small { display: block; opacity: 0.75; font-size: 10px; margin-top: 2px; }
+  .pv-airtable .feature .p { font-size: 28px; font-weight: 700; letter-spacing: -0.04em; }
+
+  .preview-banner { background: var(--ink); color: #fff; padding: 10px 16px; font-size: 12px; font-weight: 600; text-align: center; letter-spacing: -0.1px; }
+  .preview-banner a { color: #fff; margin-left: 12px; text-decoration: underline; }
+
+  @keyframes fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+  .card { animation: fade-up 700ms ease-out backwards; }
+  .grid .card:nth-child(1) { animation-delay: 40ms; }
+  .grid .card:nth-child(2) { animation-delay: 100ms; }
+  .grid .card:nth-child(3) { animation-delay: 160ms; }
+  .grid .card:nth-child(4) { animation-delay: 220ms; }
+  .grid .card:nth-child(5) { animation-delay: 280ms; }
+  .grid .card:nth-child(6) { animation-delay: 340ms; }
+  .grid .card:nth-child(7) { animation-delay: 400ms; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  Preview gallery — none of these are live. <a href="/">Back to production</a>
+</div>
+
+<main class="wrap">
+  <header class="head">
+    <p class="kicker">Pump · design exploration · May 2026</p>
+    <h1 class="title">Seven voices, <em>one screen.</em></h1>
+    <p class="sub">
+      The Pumps view rendered in seven different design languages — each derived from a brand's DESIGN.md.
+      Same gas-finder content, completely different aesthetic point-of-view. Tap any tile to open the full
+      preview.
+    </p>
+  </header>
+
+  <div class="grid">
+    <a class="card" href="bmw.html?v=2">
+      <div class="card__preview pv-bmw">
+        <div class="stripe"></div>
+        <div class="heading">A Price<br/>Worth<br/>Driving<br/>For.</div>
+      </div>
+      <div class="card__body">
+        <h2 class="card__name">BMW / M-edition</h2>
+        <p class="card__desc">Stamped uppercase display on pure-black canvas, tricolor stripe accent</p>
+      </div>
+    </a>
+
+    <a class="card" href="ferrari.html?v=2">
+      <div class="card__preview pv-ferrari">
+        <div class="heading">A price worth <em>driving</em> for.</div>
+        <div class="rosso">Edizione Corsa</div>
+      </div>
+      <div class="card__body">
+        <h2 class="card__name">Ferrari / <em>Edizione Corsa</em></h2>
+        <p class="card__desc">Cinematic luxury, modest-weight display, Rosso Corsa as scarce accent</p>
+      </div>
+    </a>
+
+    <a class="card" href="apple.html?v=2">
+      <div class="card__preview pv-apple">
+        <div class="gnav">Pump · Atlas · Garage</div>
+        <div class="heading">Buy the right premium. <em>For real.</em></div>
+        <div class="tile">
+          <div class="p">$5.30</div>
+          <div class="m">Cheapest 93 · Sunoco · 2.0 mi</div>
+        </div>
+        <div class="pill" style="margin-top:14px;">Find me the cheapest</div>
+      </div>
+      <div class="card__body">
+        <h2 class="card__name">Apple / Gallery</h2>
+        <p class="card__desc">White canvas, SF Pro, Action Blue, pill buttons, parchment product tiles</p>
+      </div>
+    </a>
+
+    <a class="card" href="mintlify.html?v=2">
+      <div class="card__preview pv-mintlify">
+        <div class="heading">Premium pumps,<br/><em>documented.</em></div>
+        <div class="pill">Find the cheapest</div>
+        <div class="terminal">GET /api/nearby<br/>price_cents: <span class="green">530</span>, net_savings: <span class="green">127</span></div>
+      </div>
+      <div class="card__body">
+        <h2 class="card__name">Mintlify / Docs</h2>
+        <p class="card__desc">Cloud-gradient hero + dense docs body, Mint green accents, API-response showcase</p>
+      </div>
+    </a>
+
+    <a class="card" href="clay.html?v=2">
+      <div class="card__preview pv-clay">
+        <div class="o1"></div><div class="o2"></div><div class="o3"></div>
+        <div class="heading">A price worth <em>driving</em> for.</div>
+      </div>
+      <div class="card__body">
+        <h2 class="card__name">Clay / <em>Claymation</em></h2>
+        <p class="card__desc">Warm cream canvas, 3D claymation orbs, saturated color station cards</p>
+      </div>
+    </a>
+
+    <a class="card" href="cohere.html?v=2">
+      <div class="card__preview pv-cohere">
+        <div class="heading">premium pumps, ranked<br/>by <em>net dollars saved.</em></div>
+        <div class="band">
+          <div class="v">15 / 18 · <span class="acc">+$1.27</span></div>
+          <div class="l">stations w/ premium · top net savings vs closest</div>
+        </div>
+      </div>
+      <div class="card__body">
+        <h2 class="card__name">Cohere / Enterprise</h2>
+        <p class="card__desc">Mono-feel display headings, deep-green product band, precise editorial flow</p>
+      </div>
+    </a>
+
+    <a class="card" href="airtable.html?v=2">
+      <div class="card__preview pv-airtable">
+        <div class="heading">Find the premium pump <em>worth driving for.</em></div>
+        <div class="feature">
+          <div class="b">Sunoco<small>125 Hoosick St · 2.0 mi · cheapest</small></div>
+          <div class="p">$5.30</div>
+        </div>
+      </div>
+      <div class="card__body">
+        <h2 class="card__name">Airtable / Editorial</h2>
+        <p class="card__desc">Sober grotesk type, signature-coral hero card, mint + peach + mustard variants</p>
+      </div>
+    </a>
+  </div>
+</main>
+
+</body>
+</html>

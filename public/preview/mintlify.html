@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pump · Docs edition (preview)</title>
+<meta name="theme-color" content="#f5e9d8" />
+<!--
+  Mintlify-flavored redesign: sky-gradient marketing hero (cloud-cream→
+  blue wash) paired with a dense, docs-grade station list. Mintlify green
+  (#00d4a4) reserved as the brand accent only — never decorative. Inter
+  substituted with Manrope (skill rule), Geist Mono substituted with
+  JetBrains Mono. rm public/preview/mintlify.html to roll back.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" />
+<style>
+  :root {
+    --ink: #0a0a0a;
+    --body: #525252;
+    --muted: #888;
+    --green: #00d4a4;
+    --green-deep: #00b48a;
+    --green-soft: #7cebcb;
+    --tag-blue: #3772cf;
+    --canvas: #ffffff;
+    --surface: #f7f7f7;
+    --surface-soft: #fafafa;
+    --surface-code: #1c1c1e;
+    --hairline: #e5e5e5;
+    --hairline-soft: #ededed;
+    --sky-from: #87a8c8;
+    --sky-to: #f5e9d8;
+
+    --font: 'Manrope', -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); }
+  body { font-family: var(--font); font-weight: 400; line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  code, .mono { font-family: var(--mono); font-feature-settings: 'tnum' 1, 'liga' 0; }
+
+  /* Top nav */
+  .nav { display: flex; align-items: center; padding: 0 24px; height: 60px; border-bottom: 1px solid var(--hairline); background: var(--canvas); position: sticky; top: 0; z-index: 50; }
+  .brand { font-weight: 700; font-size: 17px; letter-spacing: -0.3px; display: inline-flex; align-items: center; gap: 8px; }
+  .brand .dot { width: 8px; height: 8px; background: var(--green); border-radius: 50%; box-shadow: 0 0 0 3px rgba(0,212,164,0.18); }
+  .nav__menu { margin: 0 0 0 32px; padding: 0; list-style: none; display: flex; gap: 24px; font-size: 14px; color: var(--body); }
+  .nav__menu li { cursor: pointer; }
+  .nav__menu li:hover { color: var(--ink); }
+  .nav__menu li.is-active { color: var(--ink); font-weight: 600; }
+  .nav__right { margin-left: auto; display: flex; gap: 12px; align-items: center; }
+  .pill {
+    background: var(--ink); color: #fff; padding: 9px 18px; border-radius: 9999px;
+    font-size: 13px; font-weight: 600; border: none; cursor: pointer; letter-spacing: -0.1px;
+    transition: background 200ms;
+  }
+  .pill:hover { background: #222; }
+  .pill--ghost { background: transparent; color: var(--ink); border: 1px solid var(--hairline); }
+  .pill--ghost:hover { background: var(--surface); }
+
+  /* Atmospheric hero */
+  .sky {
+    position: relative;
+    padding: 80px 24px 96px;
+    text-align: center;
+    background: linear-gradient(180deg, var(--sky-from) 0%, var(--sky-to) 70%, var(--canvas) 100%);
+    overflow: hidden;
+    border-bottom: 1px solid var(--hairline);
+  }
+  /* Soft cloud-ish shapes via radial gradients */
+  .sky::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background:
+      radial-gradient(380px 160px at 18% 65%, rgba(255,255,255,0.85), transparent 70%),
+      radial-gradient(280px 120px at 78% 45%, rgba(255,255,255,0.75), transparent 70%),
+      radial-gradient(440px 200px at 55% 90%, rgba(255,255,255,0.6), transparent 70%);
+    z-index: 0;
+  }
+  .sky > * { position: relative; z-index: 1; }
+  .sky__kicker {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(255,255,255,0.7); backdrop-filter: blur(6px);
+    border: 1px solid rgba(0,0,0,0.06);
+    padding: 6px 12px; border-radius: 9999px;
+    font-size: 12px; font-weight: 600; color: var(--ink); letter-spacing: -0.1px;
+  }
+  .sky__kicker .ping { width: 6px; height: 6px; background: var(--green); border-radius: 50%; }
+  .sky__title {
+    font-size: clamp(40px, 7vw, 76px); font-weight: 600; line-height: 1.05;
+    letter-spacing: -0.04em; margin: 16px 0 12px; color: var(--ink);
+  }
+  .sky__title em { font-style: normal; color: var(--green-deep); }
+  .sky__lede {
+    margin: 0 auto 32px; max-width: 620px; font-size: 17px;
+    color: rgba(10,10,10,0.7); line-height: 1.5;
+  }
+  .sky__cta-row { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+
+  /* Hero showcase — looks like an API response */
+  .showcase {
+    max-width: 720px; margin: 56px auto 0;
+    background: var(--canvas); border: 1px solid var(--hairline);
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    overflow: hidden;
+    text-align: left;
+  }
+  .showcase__head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 16px; background: var(--surface-soft);
+    border-bottom: 1px solid var(--hairline-soft);
+    font-family: var(--mono); font-size: 12px; color: var(--muted);
+  }
+  .showcase__dot { width: 10px; height: 10px; border-radius: 50%; background: #ddd; }
+  .showcase__dot:nth-child(1) { background: #ff5f57; }
+  .showcase__dot:nth-child(2) { background: #ffbd2e; }
+  .showcase__dot:nth-child(3) { background: #28ca42; }
+  .showcase__head .path { margin-left: 8px; font-weight: 500; }
+  .showcase__head .badge { margin-left: auto; background: var(--green); color: #003a2c; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
+  .showcase__body { padding: 24px 28px; font-family: var(--mono); font-size: 14px; line-height: 1.6; }
+  .showcase__body .key { color: var(--tag-blue); }
+  .showcase__body .val-num { color: var(--green-deep); font-weight: 700; }
+  .showcase__body .val-str { color: var(--ink); }
+  .showcase__body .comment { color: var(--muted); }
+
+  /* Content layout (docs-style) */
+  .docs {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 220px 1fr;
+    gap: 48px;
+    padding: 80px 24px;
+  }
+  @media (max-width: 820px) {
+    .docs { grid-template-columns: 1fr; gap: 24px; padding: 56px 16px; }
+    .sidebar { display: none; }
+  }
+  .sidebar {
+    position: sticky; top: 80px;
+    align-self: start;
+    font-size: 14px;
+  }
+  .sidebar h4 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: var(--muted); margin: 0 0 8px;
+  }
+  .sidebar ul { list-style: none; padding: 0; margin: 0 0 24px; display: flex; flex-direction: column; gap: 2px; }
+  .sidebar li { padding: 6px 10px; border-radius: 6px; cursor: pointer; color: var(--body); }
+  .sidebar li:hover { background: var(--surface); }
+  .sidebar li.is-active { background: rgba(0,212,164,0.12); color: var(--green-deep); font-weight: 600; }
+
+  .article h2 {
+    font-size: 32px; font-weight: 600; letter-spacing: -0.02em; margin: 0 0 8px;
+  }
+  .article .sub {
+    color: var(--body); margin: 0 0 28px;
+  }
+
+  /* Tabs (octane) — docs-style */
+  .tabs {
+    display: flex; border-bottom: 1px solid var(--hairline); margin-bottom: 24px;
+    gap: 8px;
+  }
+  .tab {
+    border: none; background: transparent; padding: 12px 4px;
+    margin-right: 16px;
+    font-family: var(--font); font-size: 14px; color: var(--muted); cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 200ms, border-color 200ms;
+    font-weight: 500;
+  }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--green); font-weight: 600; }
+
+  /* Station data table */
+  .data-table {
+    border: 1px solid var(--hairline); border-radius: 12px; overflow: hidden;
+  }
+  .row {
+    display: grid;
+    grid-template-columns: 28px 1fr 100px 140px 100px;
+    align-items: center;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--hairline-soft);
+    transition: background 180ms;
+    cursor: pointer;
+  }
+  .row:last-child { border-bottom: 0; }
+  .row:hover { background: var(--surface-soft); }
+  .row__rank { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .row.is-cheap .row__rank { color: var(--green-deep); font-weight: 700; }
+  .row__brand { font-weight: 600; font-size: 15px; color: var(--ink); }
+  .row__brand small { font-weight: 400; color: var(--muted); font-size: 13px; display: block; margin-top: 2px; }
+  .row__dist { font-family: var(--mono); font-size: 13px; color: var(--body); }
+  .row__price { font-family: var(--mono); font-size: 16px; font-weight: 700; color: var(--ink); text-align: right; font-variant-numeric: tabular-nums; }
+  .row.is-cheap .row__price { color: var(--green-deep); }
+  .row__oct { text-align: right; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .row .savings {
+    grid-column: 2 / -1;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--body);
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  .savings__tag {
+    background: rgba(0,212,164,0.14); color: var(--green-deep);
+    padding: 3px 9px; border-radius: 999px; font-weight: 700; font-size: 12px;
+  }
+  .savings__tag.cost { background: rgba(195,125,13,0.12); color: #8a5a0a; }
+  .savings__amt { font-family: var(--mono); }
+  .savings__cta { margin-left: auto; color: var(--green-deep); font-weight: 600; text-decoration: none; }
+  .savings__cta::after { content: ' →'; }
+
+  /* Callout block */
+  .callout {
+    margin-top: 32px;
+    padding: 20px 24px;
+    border: 1px solid var(--green-soft);
+    background: rgba(0, 212, 164, 0.06);
+    border-radius: 12px;
+    display: flex; gap: 16px; align-items: flex-start;
+  }
+  .callout__icon {
+    width: 28px; height: 28px; border-radius: 8px; background: var(--green); color: #003a2c;
+    display: flex; align-items: center; justify-content: center; font-weight: 800;
+    flex-shrink: 0;
+  }
+  .callout__title { font-weight: 700; margin: 0 0 4px; font-size: 14px; }
+  .callout__body { margin: 0; font-size: 14px; color: var(--body); line-height: 1.55; }
+
+  /* Footer */
+  .footer {
+    background: var(--surface-soft);
+    padding: 48px 24px 28px;
+    border-top: 1px solid var(--hairline);
+    color: var(--muted); font-size: 13px;
+  }
+  .footer__bar { max-width: 1100px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; }
+  .footer__bar a { color: var(--body); text-decoration: none; margin: 0 12px; }
+  .footer__bar a:hover { color: var(--ink); }
+
+  /* Preview banner */
+  .preview-banner { background: var(--ink); color: #fff; padding: 10px 16px; font-size: 12px; font-weight: 600; text-align: center; }
+  .preview-banner a { color: var(--green); margin-left: 12px; }
+
+  /* Animations */
+  @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  .sky__kicker, .sky__title, .sky__lede, .sky__cta-row, .showcase { animation: rise 700ms ease-out backwards; }
+  .sky__title { animation-delay: 60ms; }
+  .sky__lede { animation-delay: 140ms; }
+  .sky__cta-row { animation-delay: 220ms; }
+  .showcase { animation-delay: 320ms; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  Docs edition preview — not the live app
+  <a href="/">back to production</a>
+</div>
+
+<header class="nav">
+  <div class="brand"><span class="dot"></span> pump</div>
+  <ul class="nav__menu">
+    <li class="is-active">Pumps</li>
+    <li>Atlas</li>
+    <li>Report</li>
+    <li>Garage</li>
+    <li>Docs</li>
+  </ul>
+  <div class="nav__right">
+    <button class="pill pill--ghost">Sign in</button>
+    <button class="pill">Get the PWA</button>
+  </div>
+</header>
+
+<section class="sky">
+  <span class="sky__kicker"><span class="ping"></span> Live · 60 stations · Troy, NY</span>
+  <h1 class="sky__title">Premium pumps, <em>documented</em>.</h1>
+  <p class="sky__lede">
+    Authoritative pump-feed prices, net-savings math, and the receipts. Every reading you see
+    is a JSON row Sunoco's own pump submitted to Google Places — not a crowd guess.
+  </p>
+  <div class="sky__cta-row">
+    <button class="pill">Find me the cheapest</button>
+    <button class="pill pill--ghost">Read the methodology</button>
+  </div>
+
+  <div class="showcase" role="presentation">
+    <div class="showcase__head">
+      <span class="showcase__dot"></span>
+      <span class="showcase__dot"></span>
+      <span class="showcase__dot"></span>
+      <span class="path">GET /api/nearby?octane=premium&amp;lat=42.70&amp;lon=-73.69</span>
+      <span class="badge">200 OK</span>
+    </div>
+    <div class="showcase__body">
+<span class="comment">// cheapest premium · 5 mi radius · Troy, NY</span>
+{
+  <span class="key">"brand"</span>: <span class="val-str">"Sunoco"</span>,
+  <span class="key">"address"</span>: <span class="val-str">"125 Hoosick St, Troy, NY"</span>,
+  <span class="key">"price_cents"</span>: <span class="val-num">530</span>,
+  <span class="key">"octane"</span>: <span class="val-num">93</span>,
+  <span class="key">"distance_meters"</span>: <span class="val-num">3219</span>,
+  <span class="key">"source_kind"</span>: <span class="val-str">"google"</span>,
+  <span class="key">"observed_at"</span>: <span class="val-str">"2026-05-19T09:30Z"</span>,
+  <span class="key">"net_savings_cents"</span>: <span class="val-num">127</span>
+}
+    </div>
+  </div>
+</section>
+
+<main class="docs">
+
+  <aside class="sidebar">
+    <h4>Filter</h4>
+    <ul>
+      <li>87 — Regular</li>
+      <li>89 — Mid-grade</li>
+      <li class="is-active">91+ Any premium</li>
+      <li>93 — East-coast premium</li>
+      <li>94 — Sunoco Ultra</li>
+    </ul>
+    <h4>Radius</h4>
+    <ul>
+      <li>1 mi</li>
+      <li>3 mi</li>
+      <li class="is-active">5 mi</li>
+      <li>10 mi</li>
+    </ul>
+    <h4>Sort</h4>
+    <ul>
+      <li class="is-active">Cheapest first</li>
+      <li>Closest first</li>
+    </ul>
+  </aside>
+
+  <article class="article">
+    <h2>Six pumps within 5 miles</h2>
+    <p class="sub">Ranked by net savings — the price difference per gallon × your tank size, minus the cost of driving farther.</p>
+
+    <nav class="tabs" role="tablist">
+      <button class="tab" role="tab" aria-selected="false">87</button>
+      <button class="tab" role="tab" aria-selected="false">89</button>
+      <button class="tab" role="tab" aria-selected="true">91+ Any premium</button>
+      <button class="tab" role="tab" aria-selected="false">93</button>
+      <button class="tab" role="tab" aria-selected="false">More</button>
+    </nav>
+
+    <div class="data-table">
+      <div class="row is-cheap">
+        <div class="row__rank mono">01</div>
+        <div class="row__brand">Sunoco<small>125 Hoosick St · refreshed 4h ago</small></div>
+        <div class="row__dist mono">2.0 mi</div>
+        <div class="row__price">$5.30</div>
+        <div class="row__oct">93 oct</div>
+        <div class="savings">
+          <span class="savings__tag">Save</span>
+          <span class="savings__amt">$1.27 – $1.93 per fill-up</span>
+          <a class="savings__cta" href="#">Directions</a>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__rank mono">02</div>
+        <div class="row__brand">Stewart's Shops<small>110 Hoosick St · refreshed 11h ago</small></div>
+        <div class="row__dist mono">1.4 mi</div>
+        <div class="row__price">$5.56</div>
+        <div class="row__oct">91 oct</div>
+        <div class="savings">
+          <span class="savings__tag">Save</span>
+          <span class="savings__amt">$0.80 – $1.20 per fill-up</span>
+          <a class="savings__cta" href="#">Directions</a>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__rank mono">03</div>
+        <div class="row__brand">Stewart's Shops · ⌖ closest<small>8 Vandenburgh Ave · refreshed 3d ago · baseline</small></div>
+        <div class="row__dist mono">0.5 mi</div>
+        <div class="row__price">$5.66</div>
+        <div class="row__oct">91 oct</div>
+      </div>
+
+      <div class="row">
+        <div class="row__rank mono">04</div>
+        <div class="row__brand">Speedway<small>175 Hoosick St · <span style="color:#c37d0d">3d old · stale</span></small></div>
+        <div class="row__dist mono">2.1 mi</div>
+        <div class="row__price">$5.40</div>
+        <div class="row__oct">93 oct</div>
+        <div class="savings">
+          <span class="savings__tag">Save</span>
+          <span class="savings__amt">$0.94 – $1.42 per fill-up</span>
+          <a class="savings__cta" href="#">Directions</a>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__rank mono">05</div>
+        <div class="row__brand">Gulf<small>95 Hill St · refreshed 18h ago</small></div>
+        <div class="row__dist mono">1.8 mi</div>
+        <div class="row__price">$5.40</div>
+        <div class="row__oct">93 oct</div>
+        <div class="savings">
+          <span class="savings__tag cost">Costs</span>
+          <span class="savings__amt">$0.21 – $0.31 extra per fill-up</span>
+          <a class="savings__cta" href="#">Directions</a>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="row__rank mono">06</div>
+        <div class="row__brand">Cumberland Farms<small>625 Pawling Ave · refreshed 1d ago</small></div>
+        <div class="row__dist mono">3.4 mi</div>
+        <div class="row__price">$5.50</div>
+        <div class="row__oct">93 oct</div>
+        <div class="savings">
+          <span class="savings__tag">Save</span>
+          <span class="savings__amt">$0.49 – $0.74 per fill-up</span>
+          <a class="savings__cta" href="#">Directions</a>
+        </div>
+      </div>
+    </div>
+
+    <p style="color: var(--muted); font-size: 13px; margin-top: 18px;">+ 3 nearby stations without premium data yet</p>
+
+    <div class="callout">
+      <div class="callout__icon">i</div>
+      <div>
+        <p class="callout__title">Why are some prices missing?</p>
+        <p class="callout__body">
+          Google Places returns at most one PREMIUM entry per station. A "missing" station typically
+          means Places hasn't received a premium reading from that pump — not that the station is closed.
+        </p>
+      </div>
+    </div>
+  </article>
+
+</main>
+
+<footer class="footer">
+  <div class="footer__bar">
+    <span class="brand"><span class="dot"></span> pump</span>
+    <nav>
+      <a href="#">Docs</a><a href="#">Methodology</a><a href="#">API</a><a href="#">Status</a><a href="#">Privacy</a>
+    </nav>
+    <span>© 2026 · Docs preview</span>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.setAttribute('aria-selected', 'false'));
+    t.setAttribute('aria-selected', 'true');
+  }));
+</script>
+
+</body>
+</html>
