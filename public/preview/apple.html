@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Pump · Gallery edition (preview)</title>
+<meta name="theme-color" content="#ffffff" />
+<!--
+  Apple-store-gallery redesign sketch of the Pumps view, per apple/DESIGN.md.
+  White canvas with dark tile bands alternating, SF Pro Display/Text (system
+  fonts on Apple devices, graceful fallback elsewhere), single Action Blue
+  (#0066cc) accent. Pill-shaped CTAs (radius 9999px). 80px section padding.
+  Standalone preview — rm public/preview/apple.html to roll back.
+
+  Re: the frontend-design "no system fonts" guidance — for an Apple design
+  analysis the entire aesthetic IS system fonts (SF Pro). Departing from
+  that would misrepresent the brand, so the system-font stack here is
+  intentional, not generic.
+-->
+<style>
+  :root {
+    --blue: #0066cc;
+    --blue-focus: #0071e3;
+    --blue-on-dark: #2997ff;
+    --ink: #1d1d1f;
+    --ink-80: #333333;
+    --ink-48: #7a7a7a;
+    --divider-soft: #f0f0f0;
+    --hairline: #e0e0e0;
+    --canvas: #ffffff;
+    --parchment: #f5f5f7;
+    --pearl: #fafafc;
+    --tile-1: #272729;
+    --tile-2: #2a2a2c;
+    --tile-3: #252527;
+    --black: #000000;
+    --chip-trans: #d2d2d7;
+    --on-dark: #ffffff;
+    --body-muted-on-dark: #cccccc;
+
+    --font: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', system-ui, sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--canvas); color: var(--ink); }
+  body {
+    font-family: var(--font);
+    font-weight: 400;
+    line-height: 1.47;
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  a { color: var(--blue); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+
+  /* Global nav — black bar */
+  .gnav {
+    background: var(--black);
+    color: var(--on-dark);
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    font-size: 12px;
+    font-weight: 400;
+    letter-spacing: -0.12px;
+    padding: 0 22px;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .gnav__brand {
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.18px;
+  }
+  .gnav__menu {
+    display: flex;
+    gap: 32px;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: rgba(255, 255, 255, 0.92);
+  }
+  .gnav__menu li { cursor: pointer; opacity: 0.88; transition: opacity 200ms ease; }
+  .gnav__menu li:hover { opacity: 1; }
+  .gnav__menu li.is-active { opacity: 1; }
+  @media (max-width: 720px) {
+    .gnav { justify-content: space-between; gap: 0; }
+    .gnav__menu { display: none; }
+  }
+
+  /* Hero — white canvas, museum gallery composition */
+  .hero {
+    background: var(--canvas);
+    padding: 80px 22px 64px;
+    text-align: center;
+    border-bottom: 1px solid var(--divider-soft);
+  }
+  .hero__eyebrow {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-80);
+    letter-spacing: -0.224px;
+    margin-bottom: 8px;
+  }
+  .hero__display {
+    font-size: clamp(40px, 7vw, 80px);
+    font-weight: 600;
+    line-height: 1.05;
+    letter-spacing: -0.4px;
+    margin: 0;
+    color: var(--ink);
+  }
+  .hero__display em {
+    font-style: normal;
+    color: var(--blue);
+  }
+  .hero__sub {
+    margin: 16px auto 32px;
+    max-width: 720px;
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 1.19;
+    letter-spacing: 0.231px;
+    color: var(--ink-80);
+  }
+  .hero__cta-row {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 64px;
+  }
+  .btn-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 11px 22px;
+    border-radius: 9999px;
+    font-size: 17px;
+    font-weight: 400;
+    letter-spacing: -0.374px;
+    border: none;
+    cursor: pointer;
+    transition: transform 120ms ease, background 200ms ease;
+    text-decoration: none;
+  }
+  .btn-pill:hover { transform: translateY(-1px); }
+  .btn-pill.primary {
+    background: var(--blue);
+    color: var(--on-dark);
+  }
+  .btn-pill.primary:hover { background: var(--blue-focus); }
+  .btn-pill.secondary {
+    background: transparent;
+    color: var(--blue);
+    border: 1px solid transparent;
+  }
+  .btn-pill.secondary::after { content: ' ›'; }
+
+  /* Hero showcase — a "product" composition with a soft drop-shadow */
+  .showcase {
+    max-width: 920px;
+    margin: 0 auto;
+    background: var(--parchment);
+    border-radius: 18px;
+    padding: 64px 32px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .showcase__price {
+    font-size: clamp(72px, 12vw, 140px);
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -2px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+  .showcase__price .frac { font-size: 0.5em; color: var(--ink-48); }
+  .showcase__meta {
+    font-size: 17px;
+    color: var(--ink-80);
+    margin-top: 8px;
+  }
+  .showcase__meta strong { color: var(--blue); }
+  .showcase__shadow {
+    position: absolute;
+    left: 50%;
+    bottom: 12px;
+    transform: translateX(-50%);
+    width: 56%;
+    height: 24px;
+    background: radial-gradient(ellipse, rgba(0,0,0,0.08), transparent 70%);
+    pointer-events: none;
+  }
+
+  /* Section base */
+  section { padding: 80px 22px; }
+
+  /* Light + dark alternating tile sections */
+  .section-light { background: var(--canvas); border-bottom: 1px solid var(--divider-soft); }
+  .section-dark {
+    background: var(--black);
+    color: var(--on-dark);
+  }
+  .section__inner {
+    max-width: 980px;
+    margin: 0 auto;
+  }
+  .section__title {
+    font-size: 40px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: 0;
+    margin: 0 0 12px;
+    text-align: center;
+  }
+  .section__title em { font-style: normal; color: var(--blue); }
+  .section-dark .section__title em { color: var(--blue-on-dark); }
+  .section__sub {
+    font-size: 21px;
+    font-weight: 400;
+    line-height: 1.19;
+    letter-spacing: 0.231px;
+    text-align: center;
+    margin: 0 auto 48px;
+    max-width: 600px;
+    color: var(--ink-80);
+  }
+  .section-dark .section__sub { color: var(--body-muted-on-dark); }
+
+  /* Octane segmented control — pill */
+  .octane-control {
+    display: inline-flex;
+    margin: 0 auto 48px;
+    background: var(--chip-trans);
+    border-radius: 9999px;
+    padding: 4px;
+    gap: 4px;
+  }
+  .oct-segment {
+    border: none;
+    background: transparent;
+    color: var(--ink-80);
+    padding: 8px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    letter-spacing: -0.224px;
+    border-radius: 9999px;
+    cursor: pointer;
+    transition: background 200ms ease, color 200ms ease;
+    font-family: var(--font);
+  }
+  .oct-segment:hover { color: var(--ink); }
+  .oct-segment[aria-selected="true"] {
+    background: var(--canvas);
+    color: var(--ink);
+    font-weight: 600;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .oct-segment.prem[aria-selected="true"] {
+    background: var(--blue);
+    color: var(--on-dark);
+  }
+  .octane-row { text-align: center; }
+
+  /* Filter inline row — Apple-style "Sort by" caption */
+  .filter-row {
+    display: flex;
+    justify-content: center;
+    gap: 24px;
+    align-items: baseline;
+    font-size: 14px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+  .filter-row .label { color: var(--ink-48); }
+  .filter-row a { font-size: 14px; }
+  .filter-row a.is-active { font-weight: 600; }
+
+  /* Station tiles — 3-up grid with rounded-lg corners + soft drop-shadow */
+  .stations {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 24px;
+  }
+
+  /* Featured (cheapest) station gets the full-width hero tile treatment */
+  .tile-hero {
+    grid-column: 1 / -1;
+    background: var(--parchment);
+    border-radius: 18px;
+    padding: 48px 40px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 32px;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+    transition: transform 200ms ease;
+  }
+  .tile-hero:hover { transform: translateY(-2px); }
+  .tile-hero__kicker {
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.224px;
+    color: var(--blue);
+    margin: 0 0 8px;
+  }
+  .tile-hero__brand {
+    font-size: 40px;
+    font-weight: 600;
+    letter-spacing: 0;
+    line-height: 1.05;
+    margin: 0 0 8px;
+    color: var(--ink);
+  }
+  .tile-hero__addr {
+    font-size: 17px;
+    color: var(--ink-80);
+    letter-spacing: -0.374px;
+    margin: 0;
+  }
+  .tile-hero__meta {
+    font-size: 14px;
+    color: var(--ink-48);
+    margin-top: 16px;
+    letter-spacing: -0.224px;
+  }
+  .tile-hero__price {
+    font-size: 96px;
+    font-weight: 600;
+    line-height: 0.95;
+    letter-spacing: -2px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+  }
+  .tile-hero__price .frac { font-size: 0.5em; color: var(--ink-48); }
+  .tile-hero__oct {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-48);
+    text-align: right;
+    margin-top: 8px;
+    letter-spacing: -0.224px;
+  }
+  .tile-hero__savings {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 24px;
+    grid-column: 1 / -1;
+    padding-top: 24px;
+    border-top: 1px solid var(--hairline);
+  }
+  .tile-hero__savings-pill {
+    background: rgba(0, 102, 204, 0.1);
+    color: var(--blue);
+    padding: 6px 14px;
+    border-radius: 9999px;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: -0.224px;
+  }
+  .tile-hero__savings-text {
+    color: var(--ink-80);
+    font-size: 14px;
+  }
+  .tile-hero__cta {
+    margin-left: auto;
+    background: var(--blue);
+    color: var(--on-dark);
+    padding: 8px 18px;
+    border-radius: 9999px;
+    border: none;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    font-family: var(--font);
+  }
+  .tile-hero__cta:hover { background: var(--blue-focus); }
+  @media (max-width: 720px) {
+    .tile-hero { grid-template-columns: 1fr; padding: 32px 24px; }
+    .tile-hero__price, .tile-hero__oct { text-align: left; }
+    .tile-hero__price { font-size: 64px; }
+    .tile-hero__brand { font-size: 32px; }
+  }
+
+  /* Standard station tile */
+  .tile {
+    background: var(--parchment);
+    border-radius: 18px;
+    padding: 32px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    cursor: pointer;
+    transition: transform 200ms ease;
+  }
+  .tile:hover { transform: translateY(-2px); }
+  .tile__brand {
+    font-size: 28px;
+    font-weight: 600;
+    line-height: 1.1;
+    letter-spacing: 0;
+    margin: 0;
+    color: var(--ink);
+  }
+  .tile__addr {
+    font-size: 14px;
+    color: var(--ink-80);
+    margin: 0;
+    letter-spacing: -0.224px;
+  }
+  .tile__price {
+    font-size: 56px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.5px;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    margin-top: 24px;
+  }
+  .tile__price .frac { font-size: 0.5em; color: var(--ink-48); }
+  .tile__oct {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ink-48);
+    margin-top: 2px;
+    letter-spacing: -0.224px;
+  }
+  .tile__savings {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .tile__savings-amt {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--blue);
+    letter-spacing: -0.224px;
+  }
+  .tile__savings-amt.cost { color: #cc5a00; }
+  .tile__directions {
+    color: var(--blue);
+    font-size: 14px;
+    font-weight: 400;
+    letter-spacing: -0.224px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: var(--font);
+  }
+  .tile__directions::after { content: ' ›'; }
+  .tile__directions:hover { text-decoration: underline; }
+  .tile__meta {
+    font-size: 12px;
+    color: var(--ink-48);
+    letter-spacing: -0.12px;
+    margin-top: 6px;
+  }
+  .tile__meta .stale { color: #c47a00; }
+
+  .tile.is-baseline { background: var(--canvas); border: 1px solid var(--hairline); }
+  .tile.is-baseline .tile__price { color: var(--ink-48); }
+
+  /* Dark tile band — methodology callout */
+  .section-dark .section__inner { text-align: center; }
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 32px;
+    margin-top: 48px;
+    text-align: left;
+  }
+  .feature {
+    color: var(--on-dark);
+  }
+  .feature__num {
+    font-size: 32px;
+    font-weight: 600;
+    color: var(--blue-on-dark);
+    line-height: 1;
+    margin-bottom: 12px;
+    letter-spacing: -0.374px;
+  }
+  .feature__title {
+    font-size: 17px;
+    font-weight: 600;
+    margin: 0 0 6px;
+    letter-spacing: -0.374px;
+  }
+  .feature__body {
+    font-size: 14px;
+    color: var(--body-muted-on-dark);
+    line-height: 1.5;
+    letter-spacing: -0.224px;
+  }
+
+  /* Footer */
+  .footer {
+    background: var(--parchment);
+    padding: 48px 22px 32px;
+    color: var(--ink-48);
+    font-size: 12px;
+    letter-spacing: -0.12px;
+    border-top: 1px solid var(--divider-soft);
+  }
+  .footer__cols {
+    max-width: 980px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 32px;
+  }
+  .footer__col h4 {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink);
+    margin: 0 0 8px;
+    letter-spacing: -0.12px;
+  }
+  .footer__col ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .footer__col a { color: var(--ink-80); font-size: 12px; letter-spacing: -0.12px; }
+  .footer__bottom {
+    max-width: 980px;
+    margin: 32px auto 0;
+    padding-top: 16px;
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* Page-load reveals */
+  @keyframes fade-up {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .hero__eyebrow, .hero__display, .hero__sub, .hero__cta-row, .showcase {
+    animation: fade-up 700ms ease-out backwards;
+  }
+  .hero__display { animation-delay: 60ms; }
+  .hero__sub { animation-delay: 150ms; }
+  .hero__cta-row { animation-delay: 240ms; }
+  .showcase { animation-delay: 320ms; }
+
+  /* Preview banner */
+  .preview-banner {
+    background: var(--blue);
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+    letter-spacing: -0.12px;
+  }
+  .preview-banner a { color: #fff; margin-left: 12px; text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="preview-banner">
+  Gallery edition preview — not the live app
+  <a href="/">Back to production</a>
+</div>
+
+<header class="gnav">
+  <span class="gnav__brand">Pump</span>
+  <ul class="gnav__menu">
+    <li class="is-active">Pumps</li>
+    <li>Atlas</li>
+    <li>Report</li>
+    <li>Garage</li>
+    <li>Support</li>
+  </ul>
+  <span style="opacity:0.7">Sign in</span>
+</header>
+
+<section class="hero">
+  <p class="hero__eyebrow">Premium fuel intelligence</p>
+  <h1 class="hero__display">
+    Buy the right premium.<br />
+    <em>For real.</em>
+  </h1>
+  <p class="hero__sub">
+    Authoritative, pump-feed prices for every octane your car actually takes.
+    Net-savings math computes the cost of driving farther — automatically.
+  </p>
+  <div class="hero__cta-row">
+    <button class="btn-pill primary">Find me the cheapest</button>
+    <button class="btn-pill secondary">How it works</button>
+  </div>
+
+  <div class="showcase">
+    <div class="showcase__price">$5.<span class="frac">30</span></div>
+    <p class="showcase__meta">
+      Cheapest 93 octane near Troy, NY — <strong>Sunoco · 2.0 mi</strong> — saves $1.27 over the closest pump.
+    </p>
+    <div class="showcase__shadow"></div>
+  </div>
+</section>
+
+<section class="section-light">
+  <div class="section__inner">
+    <h2 class="section__title">Six pumps. <em>One smart sort.</em></h2>
+    <p class="section__sub">
+      We rank by net savings, not the number on the sign. Every card shows what your fill-up
+      actually costs after the extra miles.
+    </p>
+
+    <div class="octane-row">
+      <div class="octane-control" role="tablist">
+        <button class="oct-segment" role="tab" aria-selected="false">87</button>
+        <button class="oct-segment" role="tab" aria-selected="false">89</button>
+        <button class="oct-segment prem" role="tab" aria-selected="true">Any premium 91+</button>
+        <button class="oct-segment" role="tab" aria-selected="false">More</button>
+      </div>
+    </div>
+
+    <div class="filter-row">
+      <span class="label">Sort by</span>
+      <a href="#" class="is-active">Cheapest</a>
+      <a href="#">Closest</a>
+      <span style="color: var(--ink-48);">·</span>
+      <span class="label">Radius</span>
+      <a href="#">1 mi</a>
+      <a href="#">3 mi</a>
+      <a href="#" class="is-active">5 mi</a>
+      <a href="#">10 mi</a>
+    </div>
+
+    <div class="stations">
+
+      <!-- Featured / cheapest -->
+      <article class="tile-hero">
+        <div>
+          <p class="tile-hero__kicker">Cheapest premium · 5 mi radius</p>
+          <h3 class="tile-hero__brand">Sunoco</h3>
+          <p class="tile-hero__addr">125 Hoosick St, Troy, NY 12180</p>
+          <p class="tile-hero__meta">2.0 mi · Live from Google Places · refreshed 4h ago</p>
+        </div>
+        <div>
+          <div class="tile-hero__price">$5.<span class="frac">30</span></div>
+          <div class="tile-hero__oct">93 octane</div>
+        </div>
+        <div class="tile-hero__savings">
+          <span class="tile-hero__savings-pill">Save $1.27 – $1.93</span>
+          <span class="tile-hero__savings-text">vs the closest pump, after extra-drive cost</span>
+          <button class="tile-hero__cta">Directions ›</button>
+        </div>
+      </article>
+
+      <article class="tile">
+        <h3 class="tile__brand">Stewart's Shops</h3>
+        <p class="tile__addr">110 Hoosick St · 1.4 mi</p>
+        <div class="tile__price">$5.<span class="frac">56</span></div>
+        <div class="tile__oct">91 octane · brand-set</div>
+        <div class="tile__meta">Refreshed 11h ago</div>
+        <div class="tile__savings">
+          <span class="tile__savings-amt">Save $0.80 – $1.20</span>
+          <button class="tile__directions">Directions</button>
+        </div>
+      </article>
+
+      <article class="tile is-baseline">
+        <h3 class="tile__brand">Stewart's Shops</h3>
+        <p class="tile__addr">8 Vandenburgh Ave · 0.5 mi · ⌖ closest</p>
+        <div class="tile__price">$5.<span class="frac">66</span></div>
+        <div class="tile__oct">91 octane · baseline</div>
+        <div class="tile__meta">Refreshed 3 days ago</div>
+      </article>
+
+      <article class="tile">
+        <h3 class="tile__brand">Speedway</h3>
+        <p class="tile__addr">175 Hoosick St · 2.1 mi</p>
+        <div class="tile__price">$5.<span class="frac">40</span></div>
+        <div class="tile__oct">93 octane</div>
+        <div class="tile__meta"><span class="stale">3d old · stale</span></div>
+        <div class="tile__savings">
+          <span class="tile__savings-amt">Save $0.94 – $1.42</span>
+          <button class="tile__directions">Directions</button>
+        </div>
+      </article>
+
+      <article class="tile">
+        <h3 class="tile__brand">Gulf</h3>
+        <p class="tile__addr">95 Hill St · 1.8 mi</p>
+        <div class="tile__price">$5.<span class="frac">40</span></div>
+        <div class="tile__oct">93 octane</div>
+        <div class="tile__meta">Refreshed 18h ago</div>
+        <div class="tile__savings">
+          <span class="tile__savings-amt cost">Costs $0.21 – $0.31 extra</span>
+          <button class="tile__directions">Directions</button>
+        </div>
+      </article>
+
+      <article class="tile">
+        <h3 class="tile__brand">Cumberland Farms</h3>
+        <p class="tile__addr">625 Pawling Ave · 3.4 mi</p>
+        <div class="tile__price">$5.<span class="frac">50</span></div>
+        <div class="tile__oct">93 octane</div>
+        <div class="tile__meta">Refreshed 1 day ago</div>
+        <div class="tile__savings">
+          <span class="tile__savings-amt">Save $0.49 – $0.74</span>
+          <button class="tile__directions">Directions</button>
+        </div>
+      </article>
+
+    </div>
+
+    <p style="text-align: center; margin-top: 40px; color: var(--ink-48); font-size: 14px; letter-spacing: -0.224px;">
+      + 3 nearby stations without premium data yet
+    </p>
+  </div>
+</section>
+
+<section class="section-dark">
+  <div class="section__inner">
+    <h2 class="section__title">Why the math <em>actually</em> matters.</h2>
+    <p class="section__sub">
+      A station listed as "cheaper" isn't always cheaper after you account for the cost of driving there.
+    </p>
+    <div class="feature-grid">
+      <div class="feature">
+        <div class="feature__num">$0.16</div>
+        <h3 class="feature__title">Price difference / gallon</h3>
+        <p class="feature__body">The sign-readable savings. Looks great in a list. Tells half the story.</p>
+      </div>
+      <div class="feature">
+        <div class="feature__num">3.6 mi</div>
+        <h3 class="feature__title">Extra round-trip distance</h3>
+        <p class="feature__body">Cost of getting to the "cheaper" station and back to where you started.</p>
+      </div>
+      <div class="feature">
+        <div class="feature__num">$1.27</div>
+        <h3 class="feature__title">Actual net savings</h3>
+        <p class="feature__body">After gross savings minus drive cost. What the math tells you that the list doesn't.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="footer__cols">
+    <div class="footer__col">
+      <h4>Shop &amp; learn</h4>
+      <ul>
+        <li><a href="#">Premium pumps</a></li>
+        <li><a href="#">Coverage map</a></li>
+        <li><a href="#">Compare octanes</a></li>
+        <li><a href="#">Methodology</a></li>
+      </ul>
+    </div>
+    <div class="footer__col">
+      <h4>Account</h4>
+      <ul>
+        <li><a href="#">Sign in</a></li>
+        <li><a href="#">Favorites</a></li>
+        <li><a href="#">Price alerts</a></li>
+        <li><a href="#">Your garage</a></li>
+      </ul>
+    </div>
+    <div class="footer__col">
+      <h4>About Pump</h4>
+      <ul>
+        <li><a href="#">How prices work</a></li>
+        <li><a href="#">Data sources</a></li>
+        <li><a href="#">Contact</a></li>
+      </ul>
+    </div>
+    <div class="footer__col">
+      <h4>Pump values</h4>
+      <ul>
+        <li><a href="#">No interstitials</a></li>
+        <li><a href="#">No crowd reports</a></li>
+        <li><a href="#">No dark patterns</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer__bottom">
+    <span>Copyright © 2026 Pump · Gallery edition preview</span>
+    <span><a href="#">Privacy</a> · <a href="#">Terms</a> · <a href="#">Sales policy</a></span>
+  </div>
+</footer>
+
+<script>
+  document.querySelectorAll('.oct-segment').forEach(b => {
+    b.addEventListener('click', () => {
+      document.querySelectorAll('.oct-segment').forEach(x => x.setAttribute('aria-selected', 'false'));
+      b.setAttribute('aria-selected', 'true');
+    });
+  });
+</script>
+
+</body>
+</html>
