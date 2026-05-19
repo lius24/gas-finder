@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import type { Octane } from './types';
+import type { Octane, OctaneSelection } from './types';
 
 const OCTANE_KEY = 'preferences.octane';
 const RADIUS_KEY = 'preferences.radius_meters';
@@ -13,16 +13,22 @@ const VALID_SORTS: SortKey[] = ['cheapest', 'closest'];
 export const RADIUS_OPTIONS_METERS = [1609, 4828, 8047, 16093] as const;
 export type RadiusMeters = (typeof RADIUS_OPTIONS_METERS)[number];
 export const DEFAULT_RADIUS_METERS: RadiusMeters = 8047;
-export const DEFAULT_OCTANE: Octane = 87;
+// Default selection is "any premium" — the wedge target is premium-octane
+// drivers, and Google Places splits their pumps between 91 (Stewart's-style
+// brands) and 93 (most east-coast), so a single 91 or 93 default would hide
+// half the relevant stations. Regular-87 users can pick 87 explicitly;
+// they're not the wedge.
+export const DEFAULT_OCTANE: OctaneSelection = 'premium';
 
-export async function getPreferredOctane(): Promise<Octane | null> {
+export async function getPreferredOctane(): Promise<OctaneSelection | null> {
   const raw = await AsyncStorage.getItem(OCTANE_KEY);
   if (!raw) return null;
+  if (raw === 'premium') return 'premium';
   const parsed = Number(raw);
   return VALID_OCTANES.includes(parsed as Octane) ? (parsed as Octane) : null;
 }
 
-export async function setPreferredOctane(octane: Octane): Promise<void> {
+export async function setPreferredOctane(octane: OctaneSelection): Promise<void> {
   await AsyncStorage.setItem(OCTANE_KEY, String(octane));
 }
 

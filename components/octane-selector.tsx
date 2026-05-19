@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { colors, fonts, radius, space } from '@/lib/theme';
-import { PRIMARY_OCTANES, SECONDARY_OCTANES, type Octane } from '@/lib/types';
+import { SECONDARY_OCTANES, type Octane, type OctaneSelection } from '@/lib/types';
 
 const SHORT_LABELS: Record<Octane, string> = {
   86: 'h-alt',
@@ -15,31 +15,36 @@ const SHORT_LABELS: Record<Octane, string> = {
 };
 
 type Props = {
-  value: Octane;
-  onChange: (octane: Octane) => void;
+  value: OctaneSelection;
+  onChange: (next: OctaneSelection) => void;
 };
 
 export function OctaneSelector({ value, onChange }: Props) {
-  // If the user is on a secondary octane (e.g. they had 86 picked from a
-  // previous session), keep the secondary chips visible. Otherwise let them
-  // toggle on demand.
+  // The "premium" union shows by default; specific 91/93/94 chips are
+  // revealed only after the user expands. If they explicitly picked a
+  // secondary in a past session, keep the expanded chips visible.
+  const isSpecificPremium = value === 91 || value === 93 || value === 94;
+  const isSecondaryAlt = value === 86;
   const [userExpanded, setUserExpanded] = useState(false);
-  const expanded = userExpanded || SECONDARY_OCTANES.includes(value);
+  const expanded = userExpanded || isSpecificPremium || isSecondaryAlt;
 
-  const visibleOptions: Octane[] = expanded
+  const numericOptions: Octane[] = expanded
     ? [86, 87, 89, 91, 93, 94]
-    : PRIMARY_OCTANES;
+    : [87, 89];
 
   const collapseSecondaries = () => {
     Haptics.selectionAsync();
-    if (SECONDARY_OCTANES.includes(value)) {
-      // Currently sitting on 86 or 94 — fall back to standard regular before
-      // hiding the secondary chips, otherwise the row would force itself
-      // re-expanded on next render.
+    if (isSpecificPremium) {
+      // Drop back to the "any premium" superset rather than picking a
+      // specific octane — that's the curated default.
+      onChange('premium');
+    } else if (isSecondaryAlt) {
       onChange(87);
     }
     setUserExpanded(false);
   };
+
+  const premiumActive = value === 'premium';
 
   return (
     <View style={styles.wrap}>
@@ -47,13 +52,13 @@ export function OctaneSelector({ value, onChange }: Props) {
         <Text style={styles.heading}>OCTANE</Text>
         {expanded ? (
           <Pressable onPress={collapseSecondaries} hitSlop={10}>
-            <Text style={styles.collapseLink}>× HIDE 86 / 94</Text>
+            <Text style={styles.collapseLink}>× COLLAPSE</Text>
           </Pressable>
         ) : null}
       </View>
 
       <View style={styles.row}>
-        {visibleOptions.map((o) => {
+        {numericOptions.map((o) => {
           const active = o === value;
           const isSecondary = SECONDARY_OCTANES.includes(o);
           return (
@@ -83,6 +88,30 @@ export function OctaneSelector({ value, onChange }: Props) {
           );
         })}
 
+        {/* PREMIUM mega-chip — the curated entry point for premium-octane
+         *  drivers, merging 91/93/94 (Sunoco Ultra) into one ranked list. */}
+        <Pressable
+          onPress={() => {
+            if (!premiumActive) Haptics.selectionAsync();
+            onChange('premium');
+          }}
+          style={[styles.premiumCell, premiumActive && styles.premiumCellActive]}>
+          <Text
+            style={[
+              styles.premiumNumber,
+              premiumActive && styles.premiumNumberActive,
+            ]}>
+            91+
+          </Text>
+          <Text
+            style={[
+              styles.premiumLabel,
+              premiumActive && styles.premiumLabelActive,
+            ]}>
+            any prem
+          </Text>
+        </Pressable>
+
         {!expanded ? (
           <Pressable
             onPress={() => {
@@ -90,7 +119,7 @@ export function OctaneSelector({ value, onChange }: Props) {
               setUserExpanded(true);
             }}
             style={styles.moreCell}
-            accessibilityLabel="Show more octanes">
+            accessibilityLabel="Show all octanes">
             <Text style={styles.moreDots}>···</Text>
             <Text style={styles.moreLabel}>more</Text>
           </Pressable>
@@ -162,6 +191,36 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   labelActive: { color: colors.paper },
+
+  premiumCell: {
+    flex: 1.6,
+    paddingVertical: 10,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.rust,
+    backgroundColor: colors.paper,
+    alignItems: 'center',
+  },
+  premiumCellActive: {
+    backgroundColor: colors.rust,
+    borderColor: colors.rust,
+  },
+  premiumNumber: {
+    fontFamily: fonts.priceHeavy,
+    fontSize: 16,
+    color: colors.rust,
+    letterSpacing: 0.3,
+  },
+  premiumNumberActive: { color: colors.amber },
+  premiumLabel: {
+    fontFamily: fonts.bodyBold,
+    fontSize: 8,
+    color: colors.rust,
+    letterSpacing: 1.4,
+    marginTop: 2,
+    textTransform: 'uppercase',
+  },
+  premiumLabelActive: { color: colors.paper },
 
   moreCell: {
     width: 44,

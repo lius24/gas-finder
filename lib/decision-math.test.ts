@@ -148,6 +148,58 @@ describe('annotateWithSavings', () => {
     expect(s.highDollars).toBeCloseTo(s.centralDollars + half, 6);
   });
 
+  it('"premium" selection treats 91 + 93 + 94 as one comparison pool', () => {
+    // Stewart's 91, Sunoco 93, generic 94 — all premium. Cheapest is the
+    // 94 station (5 mi out at $4.80). Closest priced (Stewart's at 0.5 mi
+    // for $5.20) becomes baseline; the others should show savings.
+    const stations = [
+      station('stewarts', {
+        id: 'stewarts',
+        distance_meters: 500,
+        octane: 91 as Octane,
+        price_cents: 520,
+      }),
+      station('sunoco', {
+        id: 'sunoco',
+        distance_meters: 2000,
+        octane: 93 as Octane,
+        price_cents: 510,
+      }),
+      station('ultra94', {
+        id: 'ultra94',
+        distance_meters: 5000,
+        octane: 94 as Octane,
+        price_cents: 480,
+      }),
+    ];
+    const out = annotateWithSavings(stations, 'premium');
+    expect(out.find((s) => s.id === 'stewarts')!.isBaseline).toBe(true);
+    expect(out.find((s) => s.id === 'sunoco')!.savings).not.toBeNull();
+    expect(out.find((s) => s.id === 'ultra94')!.savings).not.toBeNull();
+  });
+
+  it('"premium" excludes 87 and 89 stations from baseline + comparison', () => {
+    const stations = [
+      // Closer regular station — must NOT become baseline in premium mode.
+      station('reg', {
+        id: 'reg',
+        distance_meters: 100,
+        octane: 87 as Octane,
+        price_cents: 400,
+      }),
+      station('prem', {
+        id: 'prem',
+        distance_meters: 2000,
+        octane: 93 as Octane,
+        price_cents: 510,
+      }),
+    ];
+    const out = annotateWithSavings(stations, 'premium');
+    expect(out.find((s) => s.id === 'reg')!.isBaseline).toBe(false);
+    expect(out.find((s) => s.id === 'reg')!.savings).toBeNull();
+    expect(out.find((s) => s.id === 'prem')!.isBaseline).toBe(true);
+  });
+
   it('honors tankSizeGal and mpg overrides', () => {
     const stations = [
       station('a', { distance_meters: 0, price_cents: 500 }),

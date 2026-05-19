@@ -18,7 +18,8 @@
 // (±25% of the central estimate). Garage user input for these is a v1.1 item
 // (see TODOS.md / open question #3 in the design doc).
 
-import type { Octane, StationWithPrice } from './types';
+import type { Octane, OctaneSelection, StationWithPrice } from './types';
+import { octanesFor } from './types';
 import { metersToMiles } from './geo';
 import { isHidden } from './staleness';
 
@@ -63,17 +64,20 @@ export type AnnotateOpts = {
  */
 export function annotateWithSavings(
   stations: StationWithPrice[],
-  octane: Octane,
+  selection: OctaneSelection,
   opts: AnnotateOpts = {},
 ): AnnotatedStation[] {
   const tankGal = opts.tankSizeGal ?? DEFAULT_TANK_GAL;
   const mpg = opts.mpg ?? DEFAULT_MPG;
+  const allowed = new Set<Octane>(octanesFor(selection));
+  const isAllowedOctane = (o: Octane | null): o is Octane =>
+    o !== null && allowed.has(o);
 
   // Treat hidden (>7d) prices as null so a stale-but-cheap reading can't
   // become the baseline. Mirror the StationCard's render-time behavior.
   const effective = stations.map((s) => {
     if (s.price_cents === null) return s;
-    if (s.octane !== octane) return s;
+    if (!isAllowedOctane(s.octane)) return s;
     if (isHidden(s.observed_at)) {
       return { ...s, price_cents: null, observed_at: null };
     }
@@ -81,7 +85,7 @@ export function annotateWithSavings(
   });
 
   const priced = effective.filter(
-    (s) => s.price_cents !== null && s.octane === octane,
+    (s) => s.price_cents !== null && isAllowedOctane(s.octane),
   );
 
   // Baseline = closest priced station. If none exists, every card is
@@ -101,7 +105,7 @@ export function annotateWithSavings(
       baseline !== null &&
       !isBaseline &&
       s.price_cents !== null &&
-      s.octane === octane &&
+      isAllowedOctane(s.octane) &&
       baseline.price_cents !== null
     ) {
       const stationMiles =

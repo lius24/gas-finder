@@ -21,29 +21,50 @@ import {
 } from '@/lib/preferences';
 import { supabase } from '@/lib/supabase';
 import { colors, fonts, radius as radii } from '@/lib/theme';
-import type { Octane, StationWithPrice } from '@/lib/types';
+import { octanesFor, type OctaneSelection, type StationWithPrice } from '@/lib/types';
 
 export default function MapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView | null>(null);
-  const [octane, setOctane] = useState<Octane>(DEFAULT_OCTANE);
+  const [octane, setOctane] = useState<OctaneSelection>(DEFAULT_OCTANE);
   const [radius, setRadius] = useState<RadiusMeters>(DEFAULT_RADIUS_METERS);
   const [coords, setCoords] = useState<Location.LocationObjectCoords | null>(null);
   const [stations, setStations] = useState<StationWithPrice[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // For "any premium" we fan out to 91/93/94 and merge by station id —
+  // same approach as the Pumps tab (see app/(tabs)/index.tsx for the why).
   const fetchNearby = useCallback(
-    async (lat: number, lon: number, octaneVal: Octane, radiusVal: RadiusMeters) => {
-      const { data } = await supabase.functions.invoke<StationWithPrice[]>('nearby', {
-        body: {
-          latitude: lat,
-          longitude: lon,
-          octane: octaneVal,
-          radius: radiusVal,
-        },
-      });
-      setStations(data ?? []);
+    async (
+      lat: number,
+      lon: number,
+      selection: OctaneSelection,
+      radiusVal: RadiusMeters,
+    ) => {
+      const octanes = octanesFor(selection);
+      const results = await Promise.all(
+        octanes.map((o) =>
+          supabase.functions.invoke<StationWithPrice[]>('nearby', {
+            body: { latitude: lat, longitude: lon, octane: o, radius: radiusVal },
+          }),
+        ),
+      );
+      const byId = new Map<string, StationWithPrice>();
+      for (const { data } of results) {
+        for (const s of data ?? []) {
+          const prev = byId.get(s.id);
+          if (!prev) {
+            byId.set(s.id, s);
+            continue;
+          }
+          const a = prev.price_cents;
+          const b = s.price_cents;
+          if (a === null && b !== null) byId.set(s.id, s);
+          else if (a !== null && b !== null && b < a) byId.set(s.id, s);
+        }
+      }
+      setStations(Array.from(byId.values()));
     },
     [],
   );
@@ -69,7 +90,7 @@ export default function MapScreen() {
     })();
   }, []);
 
-  const handleOctaneChange = useCallback((next: Octane) => {
+  const handleOctaneChange = useCallback((next: OctaneSelection) => {
     setOctane(next);
     setPreferredOctane(next);
   }, []);

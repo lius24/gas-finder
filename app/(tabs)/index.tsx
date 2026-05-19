@@ -45,7 +45,7 @@ import {
 } from '@/lib/preferences';
 import { supabase } from '@/lib/supabase';
 import { colors, fonts, radius as radii, space } from '@/lib/theme';
-import type { Octane, StationWithPrice } from '@/lib/types';
+import { octanesFor, type OctaneSelection, type StationWithPrice } from '@/lib/types';
 
 type Coords = { latitude: number; longitude: number };
 
@@ -59,7 +59,7 @@ function formatLocationLabel(place: Location.LocationGeocodedAddress | null): st
 
 export default function ListScreen() {
   const { session } = useAuth();
-  const [octane, setOctane] = useState<Octane>(DEFAULT_OCTANE);
+  const [octane, setOctane] = useState<OctaneSelection>(DEFAULT_OCTANE);
   const [radius, setRadius] = useState<RadiusMeters>(DEFAULT_RADIUS_METERS);
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(() => new Set());
   const [coords, setCoords] = useState<Coords | null>(null);
@@ -246,19 +246,52 @@ export default function ListScreen() {
   });
 
   const fetchNearby = useCallback(
-    async (lat: number, lon: number, octaneVal: Octane, radiusVal: RadiusMeters) => {
+    async (
+      lat: number,
+      lon: number,
+      selection: OctaneSelection,
+      radiusVal: RadiusMeters,
+    ) => {
       setError(null);
-      const { data, error: fnError } = await supabase.functions.invoke<StationWithPrice[]>(
-        'nearby',
-        {
-          body: { latitude: lat, longitude: lon, octane: octaneVal, radius: radiusVal },
-        },
+
+      // The /nearby edge function takes one octane. For "any premium" we
+      // fan out to 91/93/94 in parallel and merge by station_id — each
+      // station's PREMIUM from Google Places maps to exactly one of those
+      // buckets, so for any given station only one of the three calls
+      // returns a non-null price. We keep that row. v1.0.1 optimization:
+      // teach /nearby to accept an octane array so this becomes 1 call.
+      const octanes = octanesFor(selection);
+      const results = await Promise.all(
+        octanes.map((o) =>
+          supabase.functions.invoke<StationWithPrice[]>('nearby', {
+            body: { latitude: lat, longitude: lon, octane: o, radius: radiusVal },
+          }),
+        ),
       );
+      const fnError = results.find((r) => r.error)?.error;
       if (fnError) {
         setError(fnError.message);
         return;
       }
-      setStations(data ?? []);
+
+      // Merge by station id, keeping the cheapest priced row across the
+      // octane variants. Falls back to a null-price row when all variants
+      // are null (station still appears in the list, just without a price).
+      const byId = new Map<string, StationWithPrice>();
+      for (const { data } of results) {
+        for (const s of data ?? []) {
+          const prev = byId.get(s.id);
+          if (!prev) {
+            byId.set(s.id, s);
+            continue;
+          }
+          const a = prev.price_cents;
+          const b = s.price_cents;
+          if (a === null && b !== null) byId.set(s.id, s);
+          else if (a !== null && b !== null && b < a) byId.set(s.id, s);
+        }
+      }
+      setStations(Array.from(byId.values()));
     },
     [],
   );
@@ -303,7 +336,7 @@ export default function ListScreen() {
     })();
   }, [applyCurrentLocation]);
 
-  const handleOctaneChange = useCallback((next: Octane) => {
+  const handleOctaneChange = useCallback((next: OctaneSelection) => {
     setOctane(next);
     setPreferredOctane(next);
   }, []);
@@ -514,7 +547,8 @@ export default function ListScreen() {
       ) : stations.every((s) => s.price_cents === null) ? (
         <View style={styles.center}>
           <Text style={styles.muted}>
-            Stations are here, but we don&apos;t have prices for {octane} octane yet.
+            Stations are here, but we don&apos;t have prices for{' '}
+            {octane === 'premium' ? 'any premium octane (91+)' : `${octane} octane`} yet.
           </Text>
           <Pressable
             style={styles.linkButton}
