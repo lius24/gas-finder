@@ -63,6 +63,20 @@ After adding a new override, redeploy via `supabase functions deploy refresh-pri
 - **Stale-price handling:** prices >24h are muted with `stale` chip; prices >7d are hidden (treated as null). Logic lives in `lib/staleness.ts`. Established 2026-05-18 via `/plan-eng-review` decision ER6.
 - **Decision math:** pure function at `lib/decision-math.ts:annotateWithSavings(stations, octane, opts?)`. Parent components call it before passing stations to `StationCard`. Card never computes baseline itself. Established 2026-05-18 via `/plan-eng-review` decision ER4.
 
+## Theme system (Desert / Ferrari / Airtable)
+
+Three ship in v1 — picker lives in the Garage tab under APPEARANCE. Tokens flow through React context (`useTheme()` from `lib/theme-provider.tsx`), persisted in AsyncStorage. Theme definitions in `lib/theme.ts`.
+
+**Authoring rules for any new component:**
+- Import `useTheme` (and `type Theme`) from `@/lib/theme-provider` and `@/lib/theme` respectively. Never import `colors`/`fonts`/etc. as top-level constants — those still exist for backward-compat but should not be used in new code.
+- Move `StyleSheet.create({...})` into a `makeStyles(theme: Theme)` function. Call it from inside the component via `const styles = useMemo(() => makeStyles(theme), [theme])`.
+- Use **semantic slots** for the inverse-contrast surfaces — pump LCD panel, sign-in button, active octane chip, "GET DIRECTIONS" CTA, formula card:
+  - `displaySurface` (always dark) — the background
+  - `displayInk` (always bright accent) — the foreground
+  - `onRust` — text/icons sitting on a `rust` (or `danger`) background
+  - `onAmber` — text/icons sitting on an `amber` background
+  These prevent "white on white" regressions when Ferrari binds `colors.ink` to white.
+
 ## Backend not touched in v1
 
 The Supabase backend (Edge Functions, schema, RPCs, cron jobs, CRON_SECRET gating) is already deployed and dogfooded on real Troy NY prices. **v1 PWA work is frontend-only.** Do not modify the backend unless explicitly asked.
