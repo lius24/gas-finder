@@ -69,5 +69,6 @@ The Supabase backend (Edge Functions, schema, RPCs, cron jobs, CRON_SECRET gatin
 
 ## Deploy
 
-- Web: Vercel via `expo export --platform web` → `dist/` → Vercel auto-deploy on `main` push
+- Web: Vercel auto-deploys on `main` push. The build command is `npm run export:web` (configured in `vercel.json`), which runs `expo export --platform web` then `node scripts/inject-pwa-tags.mjs` to patch the SPA shell with PWA manifest + iOS Add-to-Home-Screen meta tags. The injector exists because `app/+html.tsx` is silently skipped when `expo.web.output` is `"single"` — patching the emitted shell is cheaper than rewiring to `"static"` per-route HTML.
+- Static assets: anything under `public/` is copied verbatim to `dist/` by `expo export`. That's where `manifest.json`, `icon-192.png`, `icon-512.png`, and `apple-touch-icon.png` live. PWA icons were generated from `assets/images/icon.png` (1024×1024) via `sips` — re-run `sips -s format png -z N N assets/images/icon.png --out public/icon-N.png` if the source icon changes.
 - Native (deferred): EAS Build + TestFlight + Apple Developer. Re-evaluate after validation gate (≥10 non-household WAU × 4 weeks).
