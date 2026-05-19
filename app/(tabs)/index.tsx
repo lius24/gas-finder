@@ -2,8 +2,11 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Haptics from 'expo-haptics';
 import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AirtablePumpsView } from '@/components/pumps-airtable-view';
+import { FerrariPumpsView } from '@/components/pumps-ferrari-view';
+import { usePumpsData } from '@/hooks/use-pumps-data';
 import type { Theme } from '@/lib/theme';
-import { useTheme } from '@/lib/theme-provider';
+import { useTheme, useThemeId } from '@/lib/theme-provider';
 import {
   ActivityIndicator,
   Linking,
@@ -59,6 +62,23 @@ function formatLocationLabel(place: Location.LocationGeocodedAddress | null): st
 }
 
 export default function ListScreen() {
+  const themeId = useThemeId();
+  if (themeId === 'ferrari') return <FerrariPumpsViewWrapper />;
+  if (themeId === 'airtable') return <AirtablePumpsViewWrapper />;
+  return <DesertPumpsView />;
+}
+
+function FerrariPumpsViewWrapper() {
+  const data = usePumpsData();
+  return <FerrariPumpsView data={data} />;
+}
+
+function AirtablePumpsViewWrapper() {
+  const data = usePumpsData();
+  return <AirtablePumpsView data={data} />;
+}
+
+function DesertPumpsView() {
   const theme = useTheme();
   const styles = useMemo(() => makeStyles(theme), [theme]);
   const { colors } = theme;
