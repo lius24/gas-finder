@@ -61,22 +61,38 @@ const FERRARI_GRID_GAP = 32;
 const FERRARI_CARD_MIN = 360;
 const ferrariGridPad = (w: number) => (w >= 600 ? 32 : 16);
 
+// Ferrari spacing ladder — a verbatim port of the preview's `:root` 8px
+// scale (public/preview/ferrari.html). The shared theme `space` token
+// tops out at 32, so the editorial/cinematic tier (48–128) — the part
+// that gives the layout its slow, premium rhythm — has to live here.
+const FZ = { xs: 16, sm: 24, md: 32, lg: 48, xl: 64, xxl: 96, super: 128 } as const;
+
+// Content caps here and centers. The preview is full-bleed, but it was
+// only ever judged on a laptop; uncapped, a wide monitor turns the card
+// grid into 5–6 spreadsheet columns. Capping holds the felt 3-column
+// composition and lets the near-black canvas breathe as side gutters.
+const FERRARI_MAX_W = 1440;
+
 export function FerrariPumpsView({ data }: { data: PumpsData }) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
-  const styles = useMemo(() => makeStyles(theme, width), [theme, width]);
+  // All layout math keys off contentW — the window width capped at
+  // FERRARI_MAX_W — not the raw window width, so the capped column never
+  // overflows and the column count stops growing past the cap.
+  const contentW = Math.min(width, FERRARI_MAX_W);
+  const styles = useMemo(() => makeStyles(theme, contentW), [theme, contentW]);
   const { colors } = theme;
 
   // Station grid layout — fluid auto-fill, reproducing the preview's
   // `grid-template-columns: repeat(auto-fill, minmax(360px, 1fr))`
-  // (public/preview/ferrari.html). Full-bleed: no max-width cap, so the
-  // column count grows with the window the same way the preview does —
-  // 3 columns near 1280px, 4 near 1920px, more on wider monitors. Cards
-  // get an explicit pixel width because RN-Web's FlatList numColumns
-  // renders unreliably (overlapping cards).
+  // (public/preview/ferrari.html), but keyed off contentW (window width
+  // capped at FERRARI_MAX_W). The cap holds the column count at 3 on a
+  // laptop and ~3 past 1440px instead of letting it climb to 5–6 on a
+  // wide monitor. Cards get an explicit pixel width because RN-Web's
+  // FlatList numColumns renders unreliably (overlapping cards).
   const GRID_GAP = FERRARI_GRID_GAP;
-  const GRID_PAD = ferrariGridPad(width);
-  const innerW = width - GRID_PAD * 2;
+  const GRID_PAD = ferrariGridPad(contentW);
+  const innerW = contentW - GRID_PAD * 2;
   // auto-fill column count: how many CARD_MIN-wide tracks fit, gaps included.
   const columns = Math.max(
     1,
@@ -593,24 +609,38 @@ function radiusMiLabel(m: number): string {
   return '10';
 }
 
-function makeStyles({ colors, fonts, space }: Theme, width: number) {
-  // Responsive scaling — phone uses preview's mobile clamp floor, tablet+
-  // scales up toward the preview's max sizes.
-  const heroTitleSize = width >= 900 ? 96 : width >= 600 ? 72 : 56;
-  const heroTitleLine = Math.round(heroTitleSize * 1.02);
-  const telNumSize = width >= 900 ? 72 : width >= 600 ? 56 : 44;
-  const cardPriceSize = width >= 600 ? 56 : 48;
-  const cardBrandSize = width >= 600 ? 28 : 24;
+// CSS clamp(MIN, PREFERRED, MAX) — ports the preview's fluid type sizing.
+function clamp(min: number, val: number, max: number): number {
+  return Math.max(min, Math.min(val, max));
+}
 
-  const GRID_PAD = ferrariGridPad(width);
+function makeStyles({ colors, fonts, space }: Theme, contentW: number) {
+  // Type sizing is a verbatim port of the preview's CSS clamps:
+  //   heroTitle  clamp(56px, 12vw, 132px)  → reaches 132 on any laptop
+  //   telNum     clamp(40px,  8vw,  80px)
+  // Keying the "vw" off contentW means the headline scales with its
+  // actual (capped) container, so it lands at the same cinematic 132px
+  // the preview hits — not the old flat 96px cap.
+  const isWide = contentW >= 600;
+  const heroTitleSize = Math.round(clamp(56, contentW * 0.12, 132));
+  const heroTitleLine = Math.round(heroTitleSize * 1.02);
+  const telNumSize = Math.round(clamp(40, contentW * 0.08, 80));
+  const cardPriceSize = isWide ? 56 : 48;
+  const cardBrandSize = isWide ? 28 : 24;
+
+  const GRID_PAD = ferrariGridPad(contentW);
 
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
 
-    // ScrollView content. Full-bleed — the preview is an edge-to-edge
-    // marketing page with no centered max-width container.
+    // ScrollView content. The near-black canvas spans full-bleed; the
+    // inner `column` caps at FERRARI_MAX_W and centers, so wide monitors
+    // get canvas-colored side gutters rather than more columns.
     scrollContent: { backgroundColor: colors.bg },
-    column: { width: '100%' },
+    // Centered, width-capped content column. Below FERRARI_MAX_W this is
+    // a no-op (width:100%); above it the column holds at 1440 and the
+    // near-black canvas shows through as calm side gutters.
+    column: { width: '100%', maxWidth: FERRARI_MAX_W, alignSelf: 'center' },
 
     // Station grid — fluid flex-wrap; each card gets an explicit pixel
     // width. 32px gutter matches the preview's `gap: var(--md)`.
@@ -678,8 +708,8 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
     // backgroundImage directly. Native still falls back to the solid bg.
     cinema: {
       paddingHorizontal: GRID_PAD,
-      paddingTop: width >= 600 ? 72 : 40,
-      paddingBottom: width >= 600 ? 56 : 36,
+      paddingTop: isWide ? FZ.super : FZ.xl,
+      paddingBottom: isWide ? FZ.xxl : FZ.lg,
       borderBottomWidth: 1,
       borderBottomColor: colors.paperEdge,
       backgroundColor: colors.bg,
@@ -698,7 +728,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 12,
-      marginBottom: 24,
+      marginBottom: FZ.md,
     },
     heroEyebrowRule: { width: 32, height: 1, backgroundColor: colors.rust },
     heroEyebrowText: {
@@ -726,35 +756,35 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
     },
     heroLede: {
       fontFamily: fonts.body,
-      fontSize: width >= 600 ? 18 : 16,
-      lineHeight: width >= 600 ? 28 : 24,
+      fontSize: isWide ? 18 : 16,
+      lineHeight: isWide ? 28 : 24,
       color: colors.inkFaint,
-      marginTop: 24,
+      marginTop: FZ.md,
       maxWidth: 560,
     },
 
     // Telemetry — three big numbers in cinema-gauge style
     telemetry: {
-      flexDirection: width >= 600 ? 'row' : 'column',
+      flexDirection: isWide ? 'row' : 'column',
       borderTopWidth: 1,
       borderBottomWidth: 1,
       borderColor: colors.paperEdge,
-      marginTop: width >= 600 ? 64 : 40,
+      marginTop: isWide ? FZ.xxl : FZ.lg,
     },
     telCell: {
       flex: 1,
-      paddingVertical: width >= 600 ? 24 : 18,
-      paddingRight: width >= 600 ? 24 : 0,
-      borderRightWidth: width >= 600 ? 1 : 0,
+      paddingVertical: isWide ? FZ.md : FZ.sm,
+      paddingRight: isWide ? FZ.md : 0,
+      borderRightWidth: isWide ? 1 : 0,
       borderRightColor: colors.paperEdge,
-      borderBottomWidth: width >= 600 ? 0 : 1,
+      borderBottomWidth: isWide ? 0 : 1,
       borderBottomColor: colors.paperEdge,
     },
     telCellMid: {
-      paddingLeft: width >= 600 ? 24 : 0,
+      paddingLeft: isWide ? FZ.md : 0,
     },
     telCellLast: {
-      paddingLeft: width >= 600 ? 24 : 0,
+      paddingLeft: isWide ? FZ.md : 0,
       borderRightWidth: 0,
       borderBottomWidth: 0,
     },
@@ -783,7 +813,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
     // Editorial wrapper — below the cinema
     editorial: {
       paddingHorizontal: GRID_PAD,
-      paddingTop: width >= 600 ? 56 : 32,
+      paddingTop: isWide ? FZ.xxl : FZ.md,
       paddingBottom: 8,
     },
 
@@ -849,13 +879,13 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       justifyContent: 'space-between',
       alignItems: 'flex-end',
       gap: 16,
-      marginBottom: 24,
+      marginBottom: FZ.lg,
       flexWrap: 'wrap',
     },
     sectionHeadTitle: {
       fontFamily: fonts.display,
-      fontSize: width >= 600 ? 36 : 28,
-      lineHeight: width >= 600 ? 40 : 32,
+      fontSize: isWide ? 36 : 28,
+      lineHeight: isWide ? 40 : 32,
       color: colors.ink,
       letterSpacing: -0.72,
       fontWeight: '500',
@@ -875,12 +905,12 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       borderTopWidth: 1,
       borderBottomWidth: 1,
       borderColor: colors.paperEdge,
-      marginBottom: 24,
+      marginBottom: FZ.lg,
     },
     octCell: {
       flex: 1,
-      paddingVertical: 20,
-      paddingHorizontal: 8,
+      paddingVertical: FZ.sm,
+      paddingHorizontal: FZ.xs,
       alignItems: 'center',
       borderRightWidth: 1,
       borderRightColor: colors.paperEdge,
@@ -929,8 +959,9 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       alignItems: 'center',
       flexWrap: 'wrap',
       gap: 16,
-      paddingBottom: 24,
-      marginBottom: 24,
+      paddingTop: FZ.sm,
+      paddingBottom: FZ.md,
+      marginBottom: FZ.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.paperEdge,
     },
@@ -940,7 +971,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       gap: 8,
       flexWrap: 'wrap',
     },
-    controlsGroupRight: width >= 600 ? { marginLeft: 'auto' } : {},
+    controlsGroupRight: isWide ? { marginLeft: 'auto' } : {},
     controlsLabel: {
       fontFamily: fonts.bodyBold,
       fontSize: 11,
@@ -970,8 +1001,8 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       backgroundColor: '#1f1f1f',
       borderWidth: 1,
       borderColor: colors.paperEdge,
-      padding: 24,
-      gap: 12,
+      padding: FZ.md,
+      gap: FZ.sm,
     },
     cardCheapest: { borderColor: colors.rust },
     cardPressed: { opacity: 0.85 },
@@ -1042,7 +1073,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       justifyContent: 'space-between',
       borderTopWidth: 1,
       borderTopColor: colors.paperEdge,
-      paddingTop: 16,
+      paddingTop: FZ.sm,
       marginTop: 4,
     },
     cardPrice: {
@@ -1079,10 +1110,10 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
     savingsRow: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: 12,
+      gap: FZ.xs,
       borderTopWidth: 1,
       borderTopColor: colors.paperEdge,
-      paddingTop: 16,
+      paddingTop: FZ.sm,
       marginTop: 4,
       flexWrap: 'wrap',
     },
@@ -1114,21 +1145,21 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       fontStyle: 'italic',
       marginTop: 24,
       marginBottom: 24,
-      paddingHorizontal: space.lg,
+      paddingHorizontal: GRID_PAD,
     },
 
     // Livery — the brand's voltage moment
     livery: {
       backgroundColor: colors.rust,
-      paddingVertical: width >= 600 ? 56 : 40,
-      paddingHorizontal: space.lg,
+      paddingVertical: isWide ? FZ.xl : FZ.lg,
+      paddingHorizontal: GRID_PAD,
       alignItems: 'center',
       marginTop: 16,
     },
     liveryTitle: {
       fontFamily: fonts.display,
-      fontSize: width >= 600 ? 32 : 26,
-      lineHeight: width >= 600 ? 36 : 30,
+      fontSize: isWide ? 32 : 26,
+      lineHeight: isWide ? 36 : 30,
       color: colors.onRust,
       letterSpacing: -0.64,
       fontWeight: '500',
@@ -1147,16 +1178,16 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
     // Website footer — brand row + link columns + copyright
     footer: {
       paddingHorizontal: GRID_PAD,
-      paddingTop: width >= 600 ? 64 : 48,
-      paddingBottom: 32,
+      paddingTop: isWide ? FZ.xl : FZ.lg,
+      paddingBottom: FZ.md,
       borderTopWidth: 1,
       borderTopColor: colors.paperEdge,
       backgroundColor: colors.bg,
     },
     footerBrandRow: {
-      flexDirection: width >= 700 ? 'row' : 'column',
+      flexDirection: contentW >= 700 ? 'row' : 'column',
       justifyContent: 'space-between',
-      alignItems: width >= 700 ? 'center' : 'flex-start',
+      alignItems: contentW >= 700 ? 'center' : 'flex-start',
       gap: 24,
     },
     footerBrand: {
@@ -1201,7 +1232,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       textAlign: 'center',
       fontStyle: 'italic',
       marginTop: 12,
-      paddingHorizontal: space.lg,
+      paddingHorizontal: GRID_PAD,
     },
     errorWrap: { padding: 24, alignItems: 'center', gap: 12 },
     errorText: {
