@@ -53,22 +53,36 @@ const SAMPLE_STATIONS: SampleStation[] = [
   { rank: '06', badge: null, brand: 'Cumberland Farms', addr: '625 Pawling Ave, Troy, NY', mi: '3.4 MI', age: '1D AGO', stale: false, dollars: '5', cents: '50', octane: '93', savings: { verb: 'SAVE', amount: '$0.49 – $0.74 / fill-up' } },
 ];
 
+// Ferrari grid layout constants — shared by the component (column-count
+// math) and makeStyles (gap/padding) so the two never drift. Mirror the
+// preview's CSS: `gap: var(--md)` = 32, section padding `var(--md)` = 32,
+// `minmax(360px, …)` = 360. Phone keeps a tighter 16px gutter.
+const FERRARI_GRID_GAP = 32;
+const FERRARI_CARD_MIN = 360;
+const ferrariGridPad = (w: number) => (w >= 600 ? 32 : 16);
+
 export function FerrariPumpsView({ data }: { data: PumpsData }) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
   const styles = useMemo(() => makeStyles(theme, width), [theme, width]);
   const { colors } = theme;
 
-  // Station grid layout — computed widths instead of FlatList numColumns,
-  // which renders unreliably (overlapping cards) on react-native-web. The
-  // content column is capped + centered; cards get an explicit pixel width
-  // so the flex-wrap grid is deterministic on every screen size.
-  const GRID_GAP = 16;
-  const GRID_PAD = width >= 600 ? 24 : 16;
-  const COLUMN_MAX = 1280;
-  const columnW = Math.min(width, COLUMN_MAX);
-  const innerW = columnW - GRID_PAD * 2;
-  const columns = innerW >= 1040 ? 3 : innerW >= 680 ? 2 : 1;
+  // Station grid layout — fluid auto-fill, reproducing the preview's
+  // `grid-template-columns: repeat(auto-fill, minmax(360px, 1fr))`
+  // (public/preview/ferrari.html). Full-bleed: no max-width cap, so the
+  // column count grows with the window the same way the preview does —
+  // 3 columns near 1280px, 4 near 1920px, more on wider monitors. Cards
+  // get an explicit pixel width because RN-Web's FlatList numColumns
+  // renders unreliably (overlapping cards).
+  const GRID_GAP = FERRARI_GRID_GAP;
+  const GRID_PAD = ferrariGridPad(width);
+  const innerW = width - GRID_PAD * 2;
+  // auto-fill column count: how many CARD_MIN-wide tracks fit, gaps included.
+  const columns = Math.max(
+    1,
+    Math.floor((innerW + GRID_GAP) / (FERRARI_CARD_MIN + GRID_GAP)),
+  );
+  // Each track is 1fr → cards stretch to fill the row evenly.
   const cardW =
     columns === 1
       ? innerW
@@ -588,20 +602,22 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
   const cardPriceSize = width >= 600 ? 56 : 48;
   const cardBrandSize = width >= 600 ? 28 : 24;
 
-  const GRID_PAD = width >= 600 ? 24 : 16;
+  const GRID_PAD = ferrariGridPad(width);
 
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
 
-    // ScrollView content + centered, capped column
+    // ScrollView content. Full-bleed — the preview is an edge-to-edge
+    // marketing page with no centered max-width container.
     scrollContent: { backgroundColor: colors.bg },
-    column: { width: '100%', maxWidth: 1280, alignSelf: 'center' },
+    column: { width: '100%' },
 
-    // Station grid — flex-wrap; each card gets an explicit pixel width
+    // Station grid — fluid flex-wrap; each card gets an explicit pixel
+    // width. 32px gutter matches the preview's `gap: var(--md)`.
     grid: {
       flexDirection: 'row',
       flexWrap: 'wrap',
-      gap: 16,
+      gap: FERRARI_GRID_GAP,
       paddingHorizontal: GRID_PAD,
       paddingTop: 4,
       paddingBottom: 8,
