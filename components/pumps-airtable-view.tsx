@@ -48,51 +48,57 @@ type Palette = {
 const SAMPLE_STATIONS = [
   {
     brand: 'Sunoco',
-    addr: '125 Hoosick St · 2.0 mi',
+    addr: '125 Hoosick St, Troy, NY · 2.0 mi · refreshed 4h ago',
     dollars: '5',
     cents: '30',
     octane: '93',
-    kicker: '★ Cheapest premium · sample',
+    kicker: '★ Cheapest premium · 5 mi radius',
+    savings: 'Save $1.27 – $1.93 / fill-up',
   },
   {
     brand: "Stewart's Shops",
-    addr: '110 Hoosick St · 1.4 mi',
+    addr: '110 Hoosick St, Troy, NY · 1.4 mi · refreshed 11h ago',
     dollars: '5',
     cents: '56',
     octane: '91',
-    kicker: '02 · brand-set premium',
+    kicker: "02 · Stewart's brand-set 91",
+    savings: 'Save $0.80 – $1.20 / fill-up',
   },
   {
     brand: "Stewart's Shops",
-    addr: '8 Vandenburgh Ave · 0.5 mi',
+    addr: '8 Vandenburgh Ave, Troy, NY · 0.5 mi · 3d ago',
     dollars: '5',
     cents: '66',
     octane: '91',
     kicker: '03 · ⌖ closest · baseline',
+    savings: null,
   },
   {
     brand: 'Speedway',
-    addr: '175 Hoosick St · 2.1 mi',
+    addr: '175 Hoosick St, Troy, NY · 2.1 mi · 3d old · stale',
     dollars: '5',
     cents: '40',
     octane: '93',
-    kicker: '04 · live · Places',
+    kicker: '04 · Speedway · stale reading',
+    savings: 'Save $0.94 – $1.42 / fill-up',
   },
   {
     brand: 'Gulf',
-    addr: '95 Hill St · 1.8 mi',
+    addr: '95 Hill St, Troy, NY · 1.8 mi · refreshed 18h ago',
     dollars: '5',
     cents: '40',
     octane: '93',
-    kicker: '05 · same price, longer drive',
+    kicker: '05 · Gulf · costs extra',
+    savings: 'Costs $0.21 – $0.31 extra / fill-up',
   },
   {
     brand: 'Cumberland Farms',
-    addr: '625 Pawling Ave · 3.4 mi',
+    addr: '625 Pawling Ave, Troy, NY · 3.4 mi · refreshed 1d ago',
     dollars: '5',
     cents: '50',
     octane: '93',
-    kicker: '06 · live · Places',
+    kicker: '06 · Cumberland Farms',
+    savings: 'Save $0.49 – $0.74 / fill-up',
   },
 ];
 
@@ -571,10 +577,37 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
                           </Text>
                         </Text>
                         <Text style={[styles.featureOct, { color: palette.kicker }]}>
-                          {sample.octane} octane · sample
+                          {sample.octane} octane · Google Places
                         </Text>
+                        <View
+                          style={[styles.featureCta, { backgroundColor: palette.ctaBg }]}>
+                          <Text style={[styles.featureCtaText, { color: palette.ctaFg }]}>
+                            Directions →
+                          </Text>
+                        </View>
                       </View>
                     </View>
+                    {sample.savings ? (
+                      <View
+                        style={[
+                          styles.featureSavings,
+                          { borderTopColor: palette.hairline },
+                        ]}>
+                        <View
+                          style={[
+                            styles.featureSavingsTag,
+                            { backgroundColor: palette.tagBg },
+                          ]}>
+                          <Text
+                            style={[
+                              styles.featureSavingsTagText,
+                              { color: palette.fg },
+                            ]}>
+                            {sample.savings}
+                          </Text>
+                        </View>
+                      </View>
+                    ) : null}
                   </View>
                 );
               })}

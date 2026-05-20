@@ -27,6 +27,31 @@ import { staleLabel } from '@/lib/staleness';
 import type { Theme } from '@/lib/theme';
 import { useTheme } from '@/lib/theme-provider';
 
+// Sample stations shown in the empty state so the cinema-card panels are
+// visible even before live data lands (GPS denied, nothing in range).
+// Placeholders only — replaced by real data once stations load.
+type SampleStation = {
+  rank: string;
+  badge: 'cheapest' | 'closest' | null;
+  brand: string;
+  addr: string;
+  mi: string;
+  age: string;
+  stale: boolean;
+  dollars: string;
+  cents: string;
+  octane: string;
+  savings: { verb: 'SAVE' | 'COSTS'; amount: string } | null;
+};
+const SAMPLE_STATIONS: SampleStation[] = [
+  { rank: '01', badge: 'cheapest', brand: 'Sunoco', addr: '125 Hoosick St, Troy, NY', mi: '2.0 MI', age: '4H AGO', stale: false, dollars: '5', cents: '30', octane: '93', savings: { verb: 'SAVE', amount: '$1.27 – $1.93 / fill-up' } },
+  { rank: '02', badge: null, brand: "Stewart's Shops", addr: '110 Hoosick St, Troy, NY', mi: '1.4 MI', age: '11H AGO', stale: false, dollars: '5', cents: '56', octane: '91', savings: { verb: 'SAVE', amount: '$0.80 – $1.20 / fill-up' } },
+  { rank: '03', badge: 'closest', brand: "Stewart's Shops", addr: '8 Vandenburgh Ave, Troy, NY', mi: '0.5 MI', age: '3D AGO', stale: false, dollars: '5', cents: '66', octane: '91', savings: null },
+  { rank: '04', badge: null, brand: 'Speedway', addr: '175 Hoosick St, Troy, NY', mi: '2.1 MI', age: '3D OLD · STALE', stale: true, dollars: '5', cents: '40', octane: '93', savings: { verb: 'SAVE', amount: '$0.94 – $1.42 / fill-up' } },
+  { rank: '05', badge: null, brand: 'Gulf', addr: '95 Hill St, Troy, NY', mi: '1.8 MI', age: '18H AGO', stale: false, dollars: '5', cents: '40', octane: '93', savings: { verb: 'COSTS', amount: '$0.21 – $0.31 extra' } },
+  { rank: '06', badge: null, brand: 'Cumberland Farms', addr: '625 Pawling Ave, Troy, NY', mi: '3.4 MI', age: '1D AGO', stale: false, dollars: '5', cents: '50', octane: '93', savings: { verb: 'SAVE', amount: '$0.49 – $0.74 / fill-up' } },
+];
+
 export function FerrariPumpsView({ data }: { data: PumpsData }) {
   const theme = useTheme();
   const { width } = useWindowDimensions();
@@ -377,21 +402,97 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
           </View>
         }
         ListEmptyComponent={
-          !loading && stations.length === 0 ? (
+          !loading && (stations.length === 0 || stations.every((s) => s.price_cents === null)) ? (
             <View style={styles.emptyWrap}>
+              {/* Sample cinema cards — show the tech-style station panels
+                  even before live data lands. */}
+              {SAMPLE_STATIONS.map((s) => (
+                <View
+                  key={s.rank}
+                  style={[styles.card, s.badge === 'cheapest' && styles.cardCheapest]}>
+                  <View style={styles.cardTop}>
+                    <Text style={styles.cardRank}>
+                      <Text
+                        style={[
+                          styles.cardRankNum,
+                          s.badge === 'cheapest' && styles.cardRankNumCheapest,
+                        ]}>
+                        {s.rank}
+                      </Text>
+                      {s.badge === 'cheapest'
+                        ? '  ·  CHEAPEST'
+                        : s.badge === 'closest'
+                          ? '  ·  BASELINE'
+                          : ''}
+                    </Text>
+                    {s.badge === 'cheapest' ? (
+                      <View style={styles.cardChip}>
+                        <Text style={styles.cardChipText}>★ BEST PRICE</Text>
+                      </View>
+                    ) : s.badge === 'closest' ? (
+                      <View style={[styles.cardChip, styles.cardChipClosest]}>
+                        <Text style={styles.cardChipText}>⌖ CLOSEST</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                  <Text style={styles.cardBrand} numberOfLines={1}>
+                    {s.brand}
+                  </Text>
+                  <Text style={styles.cardAddr} numberOfLines={1}>
+                    {s.addr}
+                  </Text>
+                  <View style={styles.cardMeta}>
+                    <Text style={styles.cardMetaText}>{s.mi}</Text>
+                    <View style={styles.cardMetaDot} />
+                    <Text style={styles.cardMetaText}>LIVE · PLACES</Text>
+                    <View style={styles.cardMetaDot} />
+                    <Text
+                      style={[
+                        styles.cardMetaText,
+                        s.stale && styles.cardMetaStale,
+                      ]}>
+                      {s.age}
+                    </Text>
+                  </View>
+                  <View style={styles.cardPriceRow}>
+                    <Text style={styles.cardPrice}>
+                      ${s.dollars}.
+                      <Text style={styles.cardPriceFrac}>{s.cents}</Text>
+                    </Text>
+                    <View style={styles.cardOctRight}>
+                      <Text style={styles.cardOctNum}>{s.octane}</Text>
+                      <Text style={styles.cardOctLabel}>OCTANE</Text>
+                    </View>
+                  </View>
+                  {s.savings ? (
+                    <View style={styles.savingsRow}>
+                      <Text
+                        style={[
+                          styles.savingsVerb,
+                          s.savings.verb === 'COSTS' && styles.savingsVerbCost,
+                        ]}>
+                        {s.savings.verb}
+                      </Text>
+                      <Text style={styles.savingsAmt} numberOfLines={1}>
+                        {s.savings.amount}
+                      </Text>
+                      <Text style={styles.savingsGo}>DIRECTIONS →</Text>
+                    </View>
+                  ) : null}
+                </View>
+              ))}
               <Text style={styles.emptyText}>
-                No stations within {radiusMiLabel(radius)} mi.
+                {stations.length === 0
+                  ? `No live stations within ${radiusMiLabel(radius)} mi yet — widen the radius or share your location.`
+                  : `Stations are here, but no prices for ${
+                      octane === 'premium' ? 'any premium octane' : `${octane} octane`
+                    } yet.`}
               </Text>
-            </View>
-          ) : !loading && stations.every((s) => s.price_cents === null) ? (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>
-                Stations are here, but no prices for{' '}
-                {octane === 'premium' ? 'any premium octane' : `${octane} octane`} yet.
-              </Text>
-              <Pressable style={styles.errorBtn} onPress={onManualRefreshPrices}>
-                <Text style={styles.errorBtnText}>REFRESH PRICES</Text>
-              </Pressable>
+              {stations.length > 0 ? (
+                <Pressable style={styles.errorBtn} onPress={onManualRefreshPrices}>
+                  <Text style={styles.errorBtnText}>REFRESH PRICES</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null
         }
@@ -1032,13 +1133,15 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       letterSpacing: 1.2,
     },
 
-    emptyWrap: { padding: 40, alignItems: 'center', gap: 12 },
+    emptyWrap: { paddingTop: 8, paddingBottom: 16 },
     emptyText: {
       fontFamily: fonts.body,
-      fontSize: 14,
+      fontSize: 13,
       color: colors.inkFaint,
       textAlign: 'center',
       fontStyle: 'italic',
+      marginTop: 12,
+      paddingHorizontal: space.lg,
     },
     errorWrap: { padding: 24, alignItems: 'center', gap: 12 },
     errorText: {
