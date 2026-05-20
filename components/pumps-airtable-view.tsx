@@ -41,6 +41,61 @@ type Palette = {
   hairline: string;
   dark: boolean;
 };
+// Sample stations shown in the empty state so the signature-color palette
+// rotation is visible immediately. Pulled from the preview HTML so the
+// in-app empty state mirrors the marketing promise. These are placeholders
+// only — replaced by live data once stations load.
+const SAMPLE_STATIONS = [
+  {
+    brand: 'Sunoco',
+    addr: '125 Hoosick St · 2.0 mi',
+    dollars: '5',
+    cents: '30',
+    octane: '93',
+    kicker: '★ Cheapest premium · sample',
+  },
+  {
+    brand: "Stewart's Shops",
+    addr: '110 Hoosick St · 1.4 mi',
+    dollars: '5',
+    cents: '56',
+    octane: '91',
+    kicker: '02 · brand-set premium',
+  },
+  {
+    brand: "Stewart's Shops",
+    addr: '8 Vandenburgh Ave · 0.5 mi',
+    dollars: '5',
+    cents: '66',
+    octane: '91',
+    kicker: '03 · ⌖ closest · baseline',
+  },
+  {
+    brand: 'Speedway',
+    addr: '175 Hoosick St · 2.1 mi',
+    dollars: '5',
+    cents: '40',
+    octane: '93',
+    kicker: '04 · live · Places',
+  },
+  {
+    brand: 'Gulf',
+    addr: '95 Hill St · 1.8 mi',
+    dollars: '5',
+    cents: '40',
+    octane: '93',
+    kicker: '05 · same price, longer drive',
+  },
+  {
+    brand: 'Cumberland Farms',
+    addr: '625 Pawling Ave · 3.4 mi',
+    dollars: '5',
+    cents: '50',
+    octane: '93',
+    kicker: '06 · live · Places',
+  },
+];
+
 const COLOR_ROTATION: Palette[] = [
   // 01 coral — cheapest
   {
@@ -473,21 +528,68 @@ export function AirtablePumpsView({ data }: { data: PumpsData }) {
           </View>
         }
         ListEmptyComponent={
-          !loading && stations.length === 0 ? (
+          !loading && (stations.length === 0 || stations.every((s) => s.price_cents === null)) ? (
             <View style={styles.emptyWrap}>
+              {/* Sample colorful cards — make the signature-color rotation
+                  visible even before live data lands. Mirrors the preview's
+                  hero promise of "Six pumps. Color-coded by ranking." */}
+              <Text style={styles.emptyKicker}>Six pumps. Color-coded by ranking.</Text>
+              {SAMPLE_STATIONS.map((sample, i) => {
+                const palette = COLOR_ROTATION[i % COLOR_ROTATION.length];
+                return (
+                  <View
+                    key={sample.brand}
+                    style={[styles.feature, { backgroundColor: palette.bg }]}>
+                    <View style={styles.featureBody}>
+                      <View style={styles.featureLeft}>
+                        <Text
+                          style={[styles.featureKicker, { color: palette.kicker }]}>
+                          {sample.kicker}
+                        </Text>
+                        <Text
+                          style={[styles.featureBrand, { color: palette.fg }]}
+                          numberOfLines={2}>
+                          {sample.brand}
+                        </Text>
+                        <Text
+                          style={[
+                            styles.featureAddr,
+                            { color: palette.fg, opacity: 0.85 },
+                          ]}>
+                          {sample.addr}
+                        </Text>
+                      </View>
+                      <View style={styles.featureRight}>
+                        <Text style={[styles.featurePrice, { color: palette.fg }]}>
+                          ${sample.dollars}.
+                          <Text
+                            style={[
+                              styles.featurePriceFrac,
+                              { color: palette.fg, opacity: 0.55 },
+                            ]}>
+                            {sample.cents}
+                          </Text>
+                        </Text>
+                        <Text style={[styles.featureOct, { color: palette.kicker }]}>
+                          {sample.octane} octane · sample
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
               <Text style={styles.emptyText}>
-                No stations within {radiusMiLabel(radius)} mi.
+                {stations.length === 0
+                  ? `No live stations within ${radiusMiLabel(radius)} mi yet — try a wider radius or share your location.`
+                  : `Stations are here, but no prices for ${
+                      octane === 'premium' ? 'any premium octane' : `${octane} octane`
+                    } yet.`}
               </Text>
-            </View>
-          ) : !loading && stations.every((s) => s.price_cents === null) ? (
-            <View style={styles.emptyWrap}>
-              <Text style={styles.emptyText}>
-                Stations are here, but no prices for{' '}
-                {octane === 'premium' ? 'any premium octane' : `${octane} octane`} yet.
-              </Text>
-              <Pressable style={styles.errorBtn} onPress={onManualRefreshPrices}>
-                <Text style={styles.errorBtnText}>Refresh prices</Text>
-              </Pressable>
+              {stations.length > 0 ? (
+                <Pressable style={styles.errorBtn} onPress={onManualRefreshPrices}>
+                  <Text style={styles.errorBtnText}>Refresh prices</Text>
+                </Pressable>
+              ) : null}
             </View>
           ) : null
         }
@@ -1089,7 +1191,15 @@ function makeStyles({ colors, fonts, space, radius }: Theme, width: number) {
       color: 'rgba(255,255,255,0.7)',
     },
 
-    emptyWrap: { padding: 40, alignItems: 'center', gap: 12 },
+    emptyWrap: { paddingHorizontal: 0, paddingVertical: 20, gap: 16 },
+    emptyKicker: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 13,
+      color: colors.inkFaint,
+      letterSpacing: 0.4,
+      textTransform: 'uppercase',
+      marginBottom: 4,
+    },
     emptyText: {
       fontFamily: fonts.body,
       fontSize: 14,
