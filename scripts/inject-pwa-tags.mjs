@@ -24,21 +24,11 @@ const PWA_HEAD = `
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="description" content="Authoritative premium-octane gas prices with net-savings decision math. No ads, no crowdsourcing." />
   <style id="gf-responsive">
-    /* On wide screens (laptops, large tablets in landscape), constrain the
-       app to a phone-width column with a neutral surround. Keeps the layout
-       from looking sparse on a 1440px monitor while leaving native and
-       narrow web viewports unchanged. The frame color matches the bg token
-       (#F4EFE6) so the centered column reads as the page itself, not a
-       card on a different surface. */
-    @media (min-width: 800px) {
-      html, body { background: #ECE6D7; }
-      #root {
-        max-width: 540px;
-        margin: 0 auto;
-        background: #F4EFE6;
-        box-shadow: 0 0 0 1px rgba(40, 28, 16, 0.06), 0 6px 30px rgba(40, 28, 16, 0.08);
-      }
-    }
+    /* Ferrari + Airtable themes are designed as full-bleed marketing pages
+       (per public/preview/*.html) — they manage their own max-width inside
+       each section. Don't trap them in a 540px column on desktop. */
+    html, body, #root { background: transparent; }
+    body { overscroll-behavior-y: none; }
   </style>
 `;
 

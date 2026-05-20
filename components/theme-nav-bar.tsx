@@ -8,10 +8,20 @@
 // uses Expo Router's default bottom tab bar — see _layout.tsx.
 
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { useState } from 'react';
+import {
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+} from 'react-native';
 
+import { useAuth } from '@/lib/auth';
 import type { Theme } from '@/lib/theme';
 import { useTheme, useThemeId } from '@/lib/theme-provider';
+import { SignInPanel } from '@/components/sign-in-panel';
 
 const ROUTE_TITLES: Record<string, string> = {
   index: 'Pumps',
@@ -23,13 +33,16 @@ const ROUTE_TITLES: Record<string, string> = {
 export function ThemeNavBar({ state, navigation }: BottomTabBarProps) {
   const theme = useTheme();
   const themeId = useThemeId();
+  const { session, signOut } = useAuth();
+  const [panelOpen, setPanelOpen] = useState(false);
   const { width } = useWindowDimensions();
   // Mirror the preview's media query: hide the inline menu on narrow
-  // viewports; the user reaches routes via the bottom hamburger… well,
-  // we don't have one yet, so we collapse to a horizontal scroll-style
-  // chip strip instead. Brand + actions always render.
+  // viewports and collapse to a horizontal scroll-style chip strip
+  // instead. Brand + auth pill always render.
   const showMenu = width >= 720;
   const styles = makeStyles(theme, themeId, showMenu);
+  const userEmail = session?.user?.email ?? null;
+  const avatarInitial = (userEmail?.[0] ?? '?').toUpperCase();
 
   const items = state.routes.map((route, idx) => ({
     key: route.key,
@@ -44,6 +57,7 @@ export function ThemeNavBar({ state, navigation }: BottomTabBarProps) {
     themeId === 'ferrari' ? 'PUMP · CORSA' : themeId === 'airtable' ? 'Pump' : 'PUMP';
 
   return (
+    <>
     <View style={styles.bar}>
       <View style={styles.brand}>
         <View style={styles.brandMark} />
@@ -67,9 +81,14 @@ export function ThemeNavBar({ state, navigation }: BottomTabBarProps) {
           ))}
         </View>
       ) : (
-        // Narrow viewport: minimal chip strip so the user can still
-        // navigate between routes. Brand stays left, actions stay right.
-        <View style={styles.menuMobile}>
+        // Narrow viewport: horizontally scrollable chip strip. flexShrink
+        // lets it give up width to the right-side sign-in pill, and the
+        // ScrollView keeps overflow accessible.
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.menuMobile}
+          style={styles.menuMobileScroll}>
           {items.map((it) => (
             <Pressable
               key={it.key}
@@ -86,31 +105,48 @@ export function ThemeNavBar({ state, navigation }: BottomTabBarProps) {
               </Text>
             </Pressable>
           ))}
-        </View>
+        </ScrollView>
       )}
 
-      {showMenu ? (
-        <View style={styles.right}>
-          {themeId === 'airtable' ? (
-            <>
-              <View style={styles.pillOutline}>
-                <Text style={styles.pillOutlineText}>Sign in</Text>
-              </View>
-              <View style={styles.pillFilled}>
-                <Text style={styles.pillFilledText}>Get started</Text>
-              </View>
-            </>
-          ) : (
-            <>
-              <Text style={styles.rightText}>EN-US</Text>
-              <Text style={styles.rightDot}>·</Text>
-              <Text style={styles.rightText}>SIGN IN</Text>
-            </>
-          )}
-        </View>
-      ) : null}
+      {/* Auth slot — always visible. Signed out: "Sign in" pill opens
+          the SignInPanel. Signed in: avatar with initial; tap opens the
+          same panel showing account info + sign out. */}
+      <View style={styles.right}>
+        {session ? (
+          <Pressable
+            onPress={() => setPanelOpen(true)}
+            style={styles.avatar}
+            accessibilityLabel={`Signed in as ${userEmail ?? 'user'}`}>
+            <Text style={styles.avatarText}>{avatarInitial}</Text>
+          </Pressable>
+        ) : themeId === 'airtable' ? (
+          <Pressable
+            onPress={() => setPanelOpen(true)}
+            style={styles.pillFilled}
+            accessibilityLabel="Sign in">
+            <Text style={styles.pillFilledText}>Sign in</Text>
+          </Pressable>
+        ) : (
+          <Pressable
+            onPress={() => setPanelOpen(true)}
+            style={styles.signInLink}
+            accessibilityLabel="Sign in">
+            <Text style={styles.rightText}>SIGN IN</Text>
+          </Pressable>
+        )}
+      </View>
     </View>
-  );
+
+    {panelOpen ? (
+      <SignInPanel
+        onClose={() => setPanelOpen(false)}
+        onSignOut={async () => {
+          await signOut();
+          setPanelOpen(false);
+        }}
+      />
+    ) : null}
+  </>);
 }
 
 function makeStyles({ colors, fonts, space }: Theme, themeId: string, showMenu: boolean) {
@@ -184,12 +220,15 @@ function makeStyles({ colors, fonts, space }: Theme, themeId: string, showMenu: 
         }
       : { height: 0, width: 0 },
 
-    // Narrow-viewport menu — compact chip strip on the right edge of the bar
+    // Narrow-viewport menu — horizontally scrollable chip strip. flex 1
+    // gives it the leftover width between brand and right-side actions;
+    // overflow scrolls horizontally so all routes stay reachable on phones.
+    menuMobileScroll: { flex: 1, marginLeft: 8 },
     menuMobile: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: 4,
-      marginLeft: 'auto',
+      paddingHorizontal: 4,
     },
     menuMobileItem: {
       paddingHorizontal: 10,
@@ -237,16 +276,36 @@ function makeStyles({ colors, fonts, space }: Theme, themeId: string, showMenu: 
       letterSpacing: -0.1,
     },
     pillFilled: {
-      paddingHorizontal: 18,
-      paddingVertical: 9,
+      paddingHorizontal: 16,
+      paddingVertical: 8,
       borderRadius: 9999,
       backgroundColor: colors.ink,
     },
     pillFilledText: {
       fontFamily: fonts.bodyBold,
-      fontSize: 14,
+      fontSize: 13,
       color: colors.bg,
       letterSpacing: -0.1,
+    },
+    // Ferrari-mode sign-in link (text only, no pill)
+    signInLink: {
+      paddingHorizontal: 8,
+      paddingVertical: 6,
+    },
+    // Signed-in avatar — circular pill with the user's first initial.
+    avatar: {
+      width: 34,
+      height: 34,
+      borderRadius: 9999,
+      backgroundColor: colors.rust,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    avatarText: {
+      fontFamily: fonts.bodyBold,
+      fontSize: 14,
+      color: colors.onRust,
+      letterSpacing: 0.2,
     },
   });
 }
