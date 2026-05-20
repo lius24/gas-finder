@@ -8,10 +8,11 @@ import { Link } from 'expo-router';
 import { useMemo } from 'react';
 import {
   ActivityIndicator,
-  FlatList,
   Linking,
   Platform,
   Pressable,
+  RefreshControl,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -21,7 +22,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { PumpsData } from '@/hooks/use-pumps-data';
-import { formatSavingsRange, type AnnotatedStation } from '@/lib/decision-math';
+import { formatSavingsRange } from '@/lib/decision-math';
 import { formatDistance } from '@/lib/geo';
 import { staleLabel } from '@/lib/staleness';
 import type { Theme } from '@/lib/theme';
@@ -57,7 +58,21 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
   const { width } = useWindowDimensions();
   const styles = useMemo(() => makeStyles(theme, width), [theme, width]);
   const { colors } = theme;
-  const columns = width >= 1100 ? 3 : width >= 700 ? 2 : 1;
+
+  // Station grid layout — computed widths instead of FlatList numColumns,
+  // which renders unreliably (overlapping cards) on react-native-web. The
+  // content column is capped + centered; cards get an explicit pixel width
+  // so the flex-wrap grid is deterministic on every screen size.
+  const GRID_GAP = 16;
+  const GRID_PAD = width >= 600 ? 24 : 16;
+  const COLUMN_MAX = 1280;
+  const columnW = Math.min(width, COLUMN_MAX);
+  const innerW = columnW - GRID_PAD * 2;
+  const columns = innerW >= 1040 ? 3 : innerW >= 680 ? 2 : 1;
+  const cardW =
+    columns === 1
+      ? innerW
+      : Math.floor((innerW - GRID_GAP * (columns - 1)) / columns);
 
   const {
     sortedStations,
@@ -103,117 +118,203 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
       Math.abs(topSavings.centralDollars).toFixed(2)
     : '—';
 
-  const renderStation = ({ item, index }: { item: AnnotatedStation; index: number }) => {
-    const isCheapest = item.id === cheapestId;
-    const isClosest = item.id === closestId;
-    const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
-    const positive = item.savings ? item.savings.centralDollars > 0 : false;
-    const stale = staleLabel(item.observed_at);
-    const rank = (index + 1).toString().padStart(2, '0');
-    return (
-      <Link
-        href={{
-          pathname: '/station/[id]',
-          params: { id: item.id, seed: JSON.stringify(item) },
-        }}
-        asChild>
-        <Pressable
-          style={({ pressed }) => [
-            styles.card,
-            isCheapest && styles.cardCheapest,
-            pressed && styles.cardPressed,
-            columns > 1 && { flex: 1 / columns, marginHorizontal: 6 },
-          ]}>
-          <View style={styles.cardTop}>
-            <Text style={styles.cardRank}>
-              <Text style={[styles.cardRankNum, isCheapest && styles.cardRankNumCheapest]}>
-                {rank}
-              </Text>
-              {isCheapest ? '  ·  CHEAPEST' : isClosest ? '  ·  BASELINE' : ''}
+  // Normalize real stations + samples into one card model so the grid
+  // renders identically for both.
+  type CardData = {
+    key: string;
+    rank: string;
+    badge: 'cheapest' | 'closest' | null;
+    brand: string;
+    addr: string;
+    metaMi: string;
+    metaAge: string | null;
+    stale: boolean;
+    price: { d: string; c: string } | null;
+    octane: string;
+    savings: { verb: 'SAVE' | 'COSTS'; amount: string } | null;
+    href: { pathname: '/station/[id]'; params: { id: string; seed: string } } | null;
+  };
+
+  const hasData = sortedStations.length > 0;
+
+  const cards: CardData[] = hasData
+    ? sortedStations.map((item, index) => {
+        const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
+        const positive = item.savings ? item.savings.centralDollars > 0 : false;
+        const stale = staleLabel(item.observed_at);
+        return {
+          key: item.id,
+          rank: (index + 1).toString().padStart(2, '0'),
+          badge:
+            item.id === cheapestId
+              ? 'cheapest'
+              : item.id === closestId
+                ? 'closest'
+                : null,
+          brand: item.brand ?? item.name,
+          addr: item.address,
+          metaMi: formatDistance(item.distance_meters),
+          metaAge: stale,
+          stale: !!stale,
+          price:
+            item.price_cents !== null
+              ? {
+                  d: String(Math.floor(item.price_cents / 100)),
+                  c: (item.price_cents % 100).toString().padStart(2, '0'),
+                }
+              : null,
+          octane: item.octane != null ? String(item.octane) : '—',
+          savings: savingsText
+            ? {
+                verb: positive ? 'SAVE' : 'COSTS',
+                amount: savingsText.replace('Save ', '').replace('Costs ', ''),
+              }
+            : null,
+          href: {
+            pathname: '/station/[id]',
+            params: { id: item.id, seed: JSON.stringify(item) },
+          },
+        };
+      })
+    : SAMPLE_STATIONS.map((s) => ({
+        key: s.rank,
+        rank: s.rank,
+        badge: s.badge,
+        brand: s.brand,
+        addr: s.addr,
+        metaMi: s.mi,
+        metaAge: s.age,
+        stale: s.stale,
+        price: { d: s.dollars, c: s.cents },
+        octane: s.octane,
+        savings: s.savings,
+        href: null,
+      }));
+
+  const renderCard = (cd: CardData) => {
+    const inner = (
+      <>
+        <View style={styles.cardTop}>
+          <Text style={styles.cardRank}>
+            <Text
+              style={[
+                styles.cardRankNum,
+                cd.badge === 'cheapest' && styles.cardRankNumCheapest,
+              ]}>
+              {cd.rank}
             </Text>
-            {isCheapest ? (
-              <View style={styles.cardChip}>
-                <Text style={styles.cardChipText}>★ BEST PRICE</Text>
-              </View>
-            ) : isClosest ? (
-              <View style={[styles.cardChip, styles.cardChipClosest]}>
-                <Text style={styles.cardChipText}>⌖ CLOSEST</Text>
-              </View>
-            ) : null}
-          </View>
-
-          <Text style={styles.cardBrand} numberOfLines={1}>
-            {item.brand ?? item.name}
+            {cd.badge === 'cheapest'
+              ? '  ·  CHEAPEST'
+              : cd.badge === 'closest'
+                ? '  ·  BASELINE'
+                : ''}
           </Text>
-          <Text style={styles.cardAddr} numberOfLines={1}>
-            {item.address}
-          </Text>
-
-          <View style={styles.cardMeta}>
-            <Text style={styles.cardMetaText}>{formatDistance(item.distance_meters)}</Text>
-            <View style={styles.cardMetaDot} />
-            <Text style={styles.cardMetaText}>LIVE · PLACES</Text>
-            {stale ? (
-              <>
-                <View style={styles.cardMetaDot} />
-                <Text style={[styles.cardMetaText, styles.cardMetaStale]}>{stale}</Text>
-              </>
-            ) : null}
-          </View>
-
-          <View style={styles.cardPriceRow}>
-            {item.price_cents !== null ? (
-              <Text style={styles.cardPrice}>
-                ${Math.floor(item.price_cents / 100)}.
-                <Text style={styles.cardPriceFrac}>
-                  {(item.price_cents % 100).toString().padStart(2, '0')}
-                </Text>
-              </Text>
-            ) : (
-              <Text style={styles.cardPriceEmpty}>—.—</Text>
-            )}
-            <View style={styles.cardOctRight}>
-              <Text style={styles.cardOctNum}>{item.octane ?? '—'}</Text>
-              <Text style={styles.cardOctLabel}>OCTANE</Text>
+          {cd.badge === 'cheapest' ? (
+            <View style={styles.cardChip}>
+              <Text style={styles.cardChipText}>★ BEST PRICE</Text>
             </View>
-          </View>
-
-          {savingsText ? (
-            <View style={styles.savingsRow}>
-              <Text
-                style={[
-                  styles.savingsVerb,
-                  !positive && styles.savingsVerbCost,
-                ]}>
-                {positive ? 'SAVE' : 'COSTS'}
-              </Text>
-              <Text style={styles.savingsAmt} numberOfLines={1}>
-                {savingsText
-                  .replace('Save ', '')
-                  .replace('Costs ', '')
-                  .replace(' extra', ' extra')}
-              </Text>
-              <Text style={styles.savingsGo}>DIRECTIONS →</Text>
+          ) : cd.badge === 'closest' ? (
+            <View style={[styles.cardChip, styles.cardChipClosest]}>
+              <Text style={styles.cardChipText}>⌖ CLOSEST</Text>
             </View>
           ) : null}
-        </Pressable>
-      </Link>
+        </View>
+
+        <Text style={styles.cardBrand} numberOfLines={1}>
+          {cd.brand}
+        </Text>
+        <Text style={styles.cardAddr} numberOfLines={1}>
+          {cd.addr}
+        </Text>
+
+        <View style={styles.cardMeta}>
+          <Text style={styles.cardMetaText}>{cd.metaMi}</Text>
+          <View style={styles.cardMetaDot} />
+          <Text style={styles.cardMetaText}>LIVE · PLACES</Text>
+          {cd.metaAge ? (
+            <>
+              <View style={styles.cardMetaDot} />
+              <Text
+                style={[styles.cardMetaText, cd.stale && styles.cardMetaStale]}>
+                {cd.metaAge}
+              </Text>
+            </>
+          ) : null}
+        </View>
+
+        <View style={styles.cardPriceRow}>
+          {cd.price ? (
+            <Text style={styles.cardPrice}>
+              ${cd.price.d}.
+              <Text style={styles.cardPriceFrac}>{cd.price.c}</Text>
+            </Text>
+          ) : (
+            <Text style={styles.cardPriceEmpty}>—.—</Text>
+          )}
+          <View style={styles.cardOctRight}>
+            <Text style={styles.cardOctNum}>{cd.octane}</Text>
+            <Text style={styles.cardOctLabel}>OCTANE</Text>
+          </View>
+        </View>
+
+        {cd.savings ? (
+          <View style={styles.savingsRow}>
+            <Text
+              style={[
+                styles.savingsVerb,
+                cd.savings.verb === 'COSTS' && styles.savingsVerbCost,
+              ]}>
+              {cd.savings.verb}
+            </Text>
+            <Text style={styles.savingsAmt} numberOfLines={1}>
+              {cd.savings.amount}
+            </Text>
+            <Text style={styles.savingsGo}>DIRECTIONS →</Text>
+          </View>
+        ) : null}
+      </>
+    );
+
+    if (cd.href) {
+      return (
+        <Link key={cd.key} href={cd.href} asChild>
+          <Pressable
+            style={({ pressed }) => [
+              styles.card,
+              { width: cardW },
+              cd.badge === 'cheapest' && styles.cardCheapest,
+              pressed && styles.cardPressed,
+            ]}>
+            {inner}
+          </Pressable>
+        </Link>
+      );
+    }
+    return (
+      <View
+        key={cd.key}
+        style={[
+          styles.card,
+          { width: cardW },
+          cd.badge === 'cheapest' && styles.cardCheapest,
+        ]}>
+        {inner}
+      </View>
     );
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <FlatList
-        key={`grid-${columns}`}
-        numColumns={columns}
-        columnWrapperStyle={columns > 1 ? styles.columnWrap : undefined}
-        data={sortedStations}
-        keyExtractor={(s) => s.id}
-        renderItem={renderStation}
-        contentContainerStyle={styles.list}
-        refreshing={refreshing}
-        onRefresh={onRefresh}
-        ListHeaderComponent={
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.rust}
+          />
+        }>
+        <View style={styles.column}>
           <View style={styles.headerStack}>
             {/* Cinema hero — radial red gradient at top-right per preview */}
             <View style={styles.cinema}>
@@ -400,142 +501,73 @@ export function FerrariPumpsView({ data }: { data: PumpsData }) {
               ) : null}
             </View>
           </View>
-        }
-        ListEmptyComponent={
-          !loading && (stations.length === 0 || stations.every((s) => s.price_cents === null)) ? (
-            <View style={styles.emptyWrap}>
-              {/* Sample cinema cards — show the tech-style station panels
-                  even before live data lands. */}
-              {SAMPLE_STATIONS.map((s) => (
-                <View
-                  key={s.rank}
-                  style={[styles.card, s.badge === 'cheapest' && styles.cardCheapest]}>
-                  <View style={styles.cardTop}>
-                    <Text style={styles.cardRank}>
-                      <Text
-                        style={[
-                          styles.cardRankNum,
-                          s.badge === 'cheapest' && styles.cardRankNumCheapest,
-                        ]}>
-                        {s.rank}
-                      </Text>
-                      {s.badge === 'cheapest'
-                        ? '  ·  CHEAPEST'
-                        : s.badge === 'closest'
-                          ? '  ·  BASELINE'
-                          : ''}
-                    </Text>
-                    {s.badge === 'cheapest' ? (
-                      <View style={styles.cardChip}>
-                        <Text style={styles.cardChipText}>★ BEST PRICE</Text>
-                      </View>
-                    ) : s.badge === 'closest' ? (
-                      <View style={[styles.cardChip, styles.cardChipClosest]}>
-                        <Text style={styles.cardChipText}>⌖ CLOSEST</Text>
-                      </View>
-                    ) : null}
-                  </View>
-                  <Text style={styles.cardBrand} numberOfLines={1}>
-                    {s.brand}
-                  </Text>
-                  <Text style={styles.cardAddr} numberOfLines={1}>
-                    {s.addr}
-                  </Text>
-                  <View style={styles.cardMeta}>
-                    <Text style={styles.cardMetaText}>{s.mi}</Text>
-                    <View style={styles.cardMetaDot} />
-                    <Text style={styles.cardMetaText}>LIVE · PLACES</Text>
-                    <View style={styles.cardMetaDot} />
-                    <Text
-                      style={[
-                        styles.cardMetaText,
-                        s.stale && styles.cardMetaStale,
-                      ]}>
-                      {s.age}
-                    </Text>
-                  </View>
-                  <View style={styles.cardPriceRow}>
-                    <Text style={styles.cardPrice}>
-                      ${s.dollars}.
-                      <Text style={styles.cardPriceFrac}>{s.cents}</Text>
-                    </Text>
-                    <View style={styles.cardOctRight}>
-                      <Text style={styles.cardOctNum}>{s.octane}</Text>
-                      <Text style={styles.cardOctLabel}>OCTANE</Text>
-                    </View>
-                  </View>
-                  {s.savings ? (
-                    <View style={styles.savingsRow}>
-                      <Text
-                        style={[
-                          styles.savingsVerb,
-                          s.savings.verb === 'COSTS' && styles.savingsVerbCost,
-                        ]}>
-                        {s.savings.verb}
-                      </Text>
-                      <Text style={styles.savingsAmt} numberOfLines={1}>
-                        {s.savings.amount}
-                      </Text>
-                      <Text style={styles.savingsGo}>DIRECTIONS →</Text>
-                    </View>
-                  ) : null}
-                </View>
-              ))}
-              <Text style={styles.emptyText}>
-                {stations.length === 0
-                  ? `No live stations within ${radiusMiLabel(radius)} mi yet — widen the radius or share your location.`
-                  : `Stations are here, but no prices for ${
-                      octane === 'premium' ? 'any premium octane' : `${octane} octane`
-                    } yet.`}
-              </Text>
-              {stations.length > 0 ? (
-                <Pressable style={styles.errorBtn} onPress={onManualRefreshPrices}>
-                  <Text style={styles.errorBtnText}>REFRESH PRICES</Text>
-                </Pressable>
-              ) : null}
-            </View>
-          ) : null
-        }
-        ListFooterComponent={
-          <>
-            {sortedStations.length > 0 && hiddenUnpriced > 0 ? (
-              <Text style={styles.hiddenNote}>
-                + {hiddenUnpriced} nearby station
-                {hiddenUnpriced === 1 ? '' : 's'} without premium data yet
-              </Text>
-            ) : null}
-            {sortedStations.length > 0 ? (
-              <View style={styles.livery}>
-                <Text style={styles.liveryTitle}>One brand voltage.</Text>
-                <Text style={styles.liverySub}>
-                  Rosso Corsa marks the moments that matter — the cheapest premium,
-                  the brand mark, the call to drive.
-                </Text>
-              </View>
-            ) : null}
 
-            {/* Website footer — brand mark + link columns + copyright */}
-            <View style={styles.footer}>
-              <View style={styles.footerBrandRow}>
-                <View style={styles.footerBrand}>
-                  <View style={styles.navHorse} />
-                  <Text style={styles.footerBrandText}>PUMP · CORSA</Text>
-                </View>
-                <View style={styles.footerLinks}>
-                  <Text style={styles.footerLink}>ABOUT</Text>
-                  <Text style={styles.footerLink}>METHODOLOGY</Text>
-                  <Text style={styles.footerLink}>PRICING DATA</Text>
-                  <Text style={styles.footerLink}>PRIVACY</Text>
-                </View>
-              </View>
-              <View style={styles.footerDivider} />
-              <Text style={styles.footerCopy}>
-                © 2026 · EDIZIONE CORSA · BUILT FOR DRIVERS WHO CARE WHICH PREMIUM
+          {/* Station grid — computed-width flex-wrap (replaces the buggy
+              FlatList numColumns grid). Renders real cards when data has
+              loaded, sample cinema cards otherwise (incl. when GPS is
+              denied — the samples preview the layout). */}
+          {!loading ? (
+            <View style={styles.grid}>{cards.map(renderCard)}</View>
+          ) : null}
+
+          {/* Empty-state note + refresh */}
+          {!loading && !error && !hasData ? (
+            <Text style={styles.emptyText}>
+              {stations.length === 0
+                ? `No live stations within ${radiusMiLabel(radius)} mi yet — widen the radius or share your location.`
+                : `Stations are here, but no prices for ${
+                    octane === 'premium' ? 'any premium octane' : `${octane} octane`
+                  } yet.`}
+            </Text>
+          ) : null}
+          {!loading && !error && !hasData && stations.length > 0 ? (
+            <View style={styles.refreshWrap}>
+              <Pressable style={styles.errorBtn} onPress={onManualRefreshPrices}>
+                <Text style={styles.errorBtnText}>REFRESH PRICES</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {/* Hidden-unpriced note */}
+          {hasData && hiddenUnpriced > 0 ? (
+            <Text style={styles.hiddenNote}>
+              + {hiddenUnpriced} nearby station
+              {hiddenUnpriced === 1 ? '' : 's'} without premium data yet
+            </Text>
+          ) : null}
+
+          {/* Livery band — only with real data */}
+          {hasData ? (
+            <View style={styles.livery}>
+              <Text style={styles.liveryTitle}>One brand voltage.</Text>
+              <Text style={styles.liverySub}>
+                Rosso Corsa marks the moments that matter — the cheapest premium,
+                the brand mark, the call to drive.
               </Text>
             </View>
-          </>
-        }
-      />
+          ) : null}
+
+          {/* Website footer — brand mark + link columns + copyright */}
+          <View style={styles.footer}>
+            <View style={styles.footerBrandRow}>
+              <View style={styles.footerBrand}>
+                <View style={styles.navHorse} />
+                <Text style={styles.footerBrandText}>PUMP · CORSA</Text>
+              </View>
+              <View style={styles.footerLinks}>
+                <Text style={styles.footerLink}>ABOUT</Text>
+                <Text style={styles.footerLink}>METHODOLOGY</Text>
+                <Text style={styles.footerLink}>PRICING DATA</Text>
+                <Text style={styles.footerLink}>PRIVACY</Text>
+              </View>
+            </View>
+            <View style={styles.footerDivider} />
+            <Text style={styles.footerCopy}>
+              © 2026 · EDIZIONE CORSA · BUILT FOR DRIVERS WHO CARE WHICH PREMIUM
+            </Text>
+          </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -556,8 +588,25 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
   const cardPriceSize = width >= 600 ? 56 : 48;
   const cardBrandSize = width >= 600 ? 28 : 24;
 
+  const GRID_PAD = width >= 600 ? 24 : 16;
+
   return StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.bg },
+
+    // ScrollView content + centered, capped column
+    scrollContent: { backgroundColor: colors.bg },
+    column: { width: '100%', maxWidth: 1280, alignSelf: 'center' },
+
+    // Station grid — flex-wrap; each card gets an explicit pixel width
+    grid: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: 16,
+      paddingHorizontal: GRID_PAD,
+      paddingTop: 4,
+      paddingBottom: 8,
+    },
+    refreshWrap: { alignItems: 'center', paddingVertical: 16 },
 
     headerStack: {},
 
@@ -612,7 +661,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
     // preview's voltage cue — RN-web passes web CSS through, so we set
     // backgroundImage directly. Native still falls back to the solid bg.
     cinema: {
-      paddingHorizontal: space.lg,
+      paddingHorizontal: GRID_PAD,
       paddingTop: width >= 600 ? 72 : 40,
       paddingBottom: width >= 600 ? 56 : 36,
       borderBottomWidth: 1,
@@ -717,7 +766,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
 
     // Editorial wrapper — below the cinema
     editorial: {
-      paddingHorizontal: space.lg,
+      paddingHorizontal: GRID_PAD,
       paddingTop: width >= 600 ? 56 : 32,
       paddingBottom: 8,
     },
@@ -899,18 +948,14 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
     },
     pillTextActive: { color: colors.bg },
 
-    // Stations list — cinema cards
-    list: { paddingHorizontal: width >= 600 ? space.sm : 0, paddingBottom: space.xxl },
-    columnWrap: { gap: 0 },
-
+    // Cinema card — width is set inline (computed per column count); the
+    // grid container handles gaps, so the card carries no margin.
     card: {
       backgroundColor: '#1f1f1f',
       borderWidth: 1,
       borderColor: colors.paperEdge,
       padding: 24,
       gap: 12,
-      marginBottom: 16,
-      marginHorizontal: width >= 600 ? 6 : space.lg,
     },
     cardCheapest: { borderColor: colors.rust },
     cardPressed: { opacity: 0.85 },
@@ -1085,7 +1130,7 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
 
     // Website footer — brand row + link columns + copyright
     footer: {
-      paddingHorizontal: space.lg,
+      paddingHorizontal: GRID_PAD,
       paddingTop: width >= 600 ? 64 : 48,
       paddingBottom: 32,
       borderTopWidth: 1,
@@ -1133,7 +1178,6 @@ function makeStyles({ colors, fonts, space }: Theme, width: number) {
       letterSpacing: 1.2,
     },
 
-    emptyWrap: { paddingTop: 8, paddingBottom: 16 },
     emptyText: {
       fontFamily: fonts.body,
       fontSize: 13,
