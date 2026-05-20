@@ -6,12 +6,13 @@
 // Each theme's Pumps view consumes this hook and renders its own layout.
 // Logic stays here; layout decisions stay in the views.
 
-import * as Location from 'expo-location';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { useAuth } from '@/lib/auth';
-import { annotateWithSavings, type AnnotatedStation } from '@/lib/decision-math';
-import { listFavoriteIds } from '@/lib/favorites';
+import { geocode, reverseGeocode, type GeoAddress } from './adapters/geocoding';
+import { getCurrentCoords, GeolocationError } from './adapters/geolocation';
+import { useAuth } from './auth';
+import { annotateWithSavings, type AnnotatedStation } from './decision-math';
+import { listFavoriteIds } from './favorites';
 import {
   DEFAULT_OCTANE,
   DEFAULT_RADIUS_METERS,
@@ -26,18 +27,15 @@ import {
   type RadiusMeters,
   type RecentLocation,
   type SortKey,
-} from '@/lib/preferences';
-import { supabase } from '@/lib/supabase';
-import { octanesFor, type OctaneSelection, type StationWithPrice } from '@/lib/types';
+} from './preferences';
+import { supabase } from './supabase';
+import { octanesFor, type OctaneSelection, type StationWithPrice } from './types';
 
 export type Coords = { latitude: number; longitude: number };
 
-export function formatLocationLabel(
-  place: Location.LocationGeocodedAddress | null,
-): string {
+export function formatLocationLabel(place: GeoAddress | null): string {
   if (!place) return '';
-  const city = place.city ?? place.subregion ?? place.district ?? null;
-  const region = place.region ?? null;
+  const { city, region } = place;
   if (city && region) return `${city}, ${region}`;
   return city ?? region ?? '';
 }
@@ -149,37 +147,28 @@ export function usePumpsData() {
 
   const applyCurrentLocation = useCallback(async () => {
     setError(null);
-    const { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      setError('Location permission denied — search for a city above.');
-      setLoading(false);
-      return;
-    }
-    let loc;
+    let position: Coords;
     try {
-      loc = await Promise.race([
-        Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced }),
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('Location request timed out')), 8000),
-        ),
-      ]);
+      position = await getCurrentCoords();
     } catch (e) {
-      setError(
-        e instanceof Error && e.message.includes('timed out')
-          ? "Couldn't read your location — search for a city above."
-          : 'Location unavailable — search for a city above.',
-      );
+      if (e instanceof GeolocationError && e.reason === 'denied') {
+        setError('Location permission denied — search for a city above.');
+      } else if (e instanceof GeolocationError && e.reason === 'timeout') {
+        setError("Couldn't read your location — search for a city above.");
+      } else {
+        setError('Location unavailable — search for a city above.');
+      }
       setLoading(false);
       return;
     }
-    const next = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+    const next = { latitude: position.latitude, longitude: position.longitude };
     setSearchLabel(null);
     setSearchInput('');
     setUsingCurrentLocation(true);
     setCoords(next);
     try {
-      const places = await Location.reverseGeocodeAsync(next);
-      setCurrentLocationLabel(formatLocationLabel(places[0] ?? null) || null);
+      const addr = await reverseGeocode(next);
+      setCurrentLocationLabel(formatLocationLabel(addr) || null);
     } catch {
       setCurrentLocationLabel(null);
     }
@@ -214,9 +203,9 @@ export function usePumpsData() {
     setSearching(true);
     setError(null);
     try {
-      const results = await Location.geocodeAsync(q);
+      const results = await geocode(q);
       if (results.length === 0) {
-        setError(`No results for "${q}".`);
+        setError(`Couldn't find "${q}" — try a city or ZIP.`);
         return;
       }
       const r = results[0];
@@ -227,8 +216,8 @@ export function usePumpsData() {
       setLoading(true);
       await pushRecentSearch(next);
       setRecents(await getRecentSearches());
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+    } catch {
+      setError("Couldn't search right now — check your connection and retry.");
     } finally {
       setSearching(false);
     }

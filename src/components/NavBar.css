@@ -1,0 +1,165 @@
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  height: 64px;
+  padding: 0 var(--s3);
+  background: var(--bg);
+  border-bottom: 1px solid var(--paper-edge);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.navbar-mark {
+  width: 14px;
+  height: 14px;
+  background: var(--rust);
+}
+
+.navbar-brand-text {
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.navbar-menu {
+  display: flex;
+  align-items: center;
+  gap: var(--s4);
+  margin-left: var(--s5);
+  flex: 1;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.navbar-menu::-webkit-scrollbar {
+  display: none;
+}
+
+.navbar-link {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  white-space: nowrap;
+  padding: 4px 0;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease;
+}
+
+.navbar-link:hover {
+  color: var(--ink-soft);
+}
+
+.navbar-link--active {
+  color: var(--ink);
+  border-bottom-color: var(--rust);
+}
+
+.navbar-auth {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.navbar-signin {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  padding: 8px 14px;
+}
+
+.navbar-signin:hover {
+  color: var(--ink);
+}
+
+.navbar-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 9999px;
+  background: var(--rust);
+  color: var(--on-rust);
+  font-family: var(--font-body), sans-serif;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* -- Ferrari: uppercase, rotated mark, racing letter-spacing -------------- */
+:root[data-theme='ferrari'] .navbar-brand-text {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+:root[data-theme='ferrari'] .navbar-brand-text::after {
+  content: ' · Corsa';
+  color: var(--rust);
+}
+
+:root[data-theme='ferrari'] .navbar-mark {
+  transform: rotate(45deg);
+}
+
+:root[data-theme='ferrari'] .navbar-link {
+  text-transform: uppercase;
+  letter-spacing: 0.65px;
+  font-size: 12px;
+}
+
+:root[data-theme='ferrari'] .navbar-signin {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-size: 12px;
+}
+
+/* -- Airtable: sentence case, rounded mark, tighter tracking -------------- */
+:root[data-theme='airtable'] .navbar-brand-text {
+  font-size: 20px;
+  letter-spacing: -0.4px;
+}
+
+:root[data-theme='airtable'] .navbar-mark {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+
+:root[data-theme='airtable'] .navbar-link {
+  font-weight: 500;
+  letter-spacing: -0.1px;
+  font-size: 14px;
+}
+
+:root[data-theme='airtable'] .navbar-link--active {
+  font-weight: 700;
+}
+
+:root[data-theme='airtable'] .navbar-signin {
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 9999px;
+  padding: 8px 16px;
+}
+
+:root[data-theme='airtable'] .navbar-signin:hover {
+  color: var(--bg);
+  opacity: 0.85;
+}
+
+@media (max-width: 720px) {
+  .navbar-menu {
+    margin-left: var(--s2);
+    gap: var(--s2);
+  }
+}

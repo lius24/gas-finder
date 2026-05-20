@@ -1,7 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
-import { createContext, useContext, useEffect, useRef, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 
-import { registerForPushAlerts } from './notifications';
 import { supabase } from './supabase';
 
 type AuthContextValue = {
@@ -19,7 +18,6 @@ const AuthContext = createContext<AuthContextValue>({
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const lastRegisteredUserId = useRef<string | null>(null);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -35,13 +33,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       subscription.subscription.unsubscribe();
     };
   }, []);
-
-  useEffect(() => {
-    const userId = session?.user?.id ?? null;
-    if (!userId || lastRegisteredUserId.current === userId) return;
-    lastRegisteredUserId.current = userId;
-    registerForPushAlerts(userId);
-  }, [session?.user?.id]);
 
   const signOut = async () => {
     await supabase.auth.signOut();

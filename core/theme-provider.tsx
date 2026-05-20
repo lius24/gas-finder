@@ -1,12 +1,9 @@
 // ThemeProvider — owns the active theme, persists the chosen id, and
-// exposes useTheme() + useThemeId() + setTheme() to consumers.
+// exposes useTheme() + useThemeId() + useSetTheme() to consumers.
 //
-// First-paint behavior: on app launch we synchronously render with the
-// DEFAULT_THEME_ID until AsyncStorage returns the persisted choice
-// (typically ~30ms on web/localStorage, slightly more on native). The
-// existing splash screen covers this window so users don't see a flash.
+// The active theme id is mirrored onto `<html data-theme>`; the per-theme
+// CSS custom properties in src/styles/themes.css key off that attribute.
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   createContext,
   useCallback,
@@ -17,7 +14,8 @@ import {
   type ReactNode,
 } from 'react';
 
-import { DEFAULT_THEME_ID, THEMES, type Theme, type ThemeId } from './theme';
+import { storage } from './adapters/storage';
+import { DEFAULT_THEME_ID, isThemeId, THEMES, type Theme, type ThemeId } from './theme';
 
 const THEME_KEY = 'preferences.theme';
 
@@ -30,8 +28,10 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-function isValidId(x: unknown): x is ThemeId {
-  return x === 'desert' || x === 'ferrari' || x === 'airtable';
+function applyDataTheme(id: ThemeId) {
+  if (typeof document !== 'undefined') {
+    document.documentElement.dataset.theme = id;
+  }
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
@@ -40,10 +40,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    AsyncStorage.getItem(THEME_KEY)
+    storage
+      .getItem(THEME_KEY)
       .then((raw) => {
         if (cancelled) return;
-        if (isValidId(raw)) setThemeIdState(raw);
+        if (isThemeId(raw)) setThemeIdState(raw);
         setReady(true);
       })
       .catch(() => {
@@ -56,17 +57,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = useCallback((id: ThemeId) => {
     setThemeIdState(id);
-    AsyncStorage.setItem(THEME_KEY, id).catch(() => {});
+    storage.setItem(THEME_KEY, id).catch(() => {});
   }, []);
 
-  // Expose the active theme to the static page shell as `<html data-theme>`.
-  // The PWA-injected CSS (scripts/inject-pwa-tags.mjs) uses it to constrain
-  // the Desert layout to a phone-width column on desktop while leaving the
-  // full-bleed Ferrari/Airtable themes uncapped. Web-only; no-op on native.
   useEffect(() => {
-    if (typeof document !== 'undefined') {
-      document.documentElement.dataset.theme = themeId;
-    }
+    applyDataTheme(themeId);
   }, [themeId]);
 
   const value = useMemo<ThemeContextValue>(
@@ -79,9 +74,6 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme(): Theme {
   const ctx = useContext(ThemeContext);
-  // Fallback to default theme when called outside the provider — keeps
-  // unit tests / Storybook-style harnesses simple, and means the desert
-  // tokens still flow even if a screen happens to render pre-provider.
   return ctx ? ctx.theme : THEMES[DEFAULT_THEME_ID];
 }
 
@@ -93,4 +85,9 @@ export function useThemeId(): ThemeId {
 export function useSetTheme(): (id: ThemeId) => void {
   const ctx = useContext(ThemeContext);
   return ctx ? ctx.setTheme : () => {};
+}
+
+export function useThemeReady(): boolean {
+  const ctx = useContext(ThemeContext);
+  return ctx ? ctx.ready : true;
 }

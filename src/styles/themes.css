@@ -1,0 +1,76 @@
+/* Per-theme design tokens, keyed off <html data-theme>.
+ *
+ * Values are sourced from the design-truth previews (public/preview/
+ * ferrari.html, airtable.html). The editorial component CSS lives in each
+ * view's own stylesheet (FerrariPumps.css, AirtablePumps.css); this file
+ * holds only the shared token surface (color / type / the 8px space ladder).
+ */
+
+:root[data-theme='ferrari'] {
+  --bg: #0c0c0c;
+  --paper: #161616;
+  --paper-edge: #2a2a2a;
+  --ink: #f4f4f4;
+  --ink-soft: #b8b8b8;
+  --ink-faint: #7a7a7a;
+  --rust: #da291c;
+  --rust-dark: #b01e0a;
+  --amber: #f6e500;
+  --amber-dark: #d6c700;
+  --danger: #f13a2c;
+  --good: #2fae5a;
+  --display-surface: #060606;
+  --display-ink: #da291c;
+  --on-rust: #ffffff;
+  --on-amber: #0c0c0c;
+
+  --font-display: 'Outfit';
+  --font-body: 'Outfit';
+
+  --radius-sm: 0px;
+  --radius-md: 2px;
+  --radius-lg: 4px;
+
+  color-scheme: dark;
+}
+
+:root[data-theme='airtable'] {
+  --bg: #ffffff;
+  --paper: #ffffff;
+  --paper-edge: #e3e3e3;
+  --ink: #181d26;
+  --ink-soft: #333840;
+  --ink-faint: #5a606b;
+  --rust: #aa2d00;
+  --rust-dark: #7a2000;
+  --amber: #d9a441;
+  --amber-dark: #9c7224;
+  --danger: #aa2d00;
+  --good: #0a2e0e;
+  --display-surface: #181d26;
+  --display-ink: #f4d35e;
+  --on-rust: #ffffff;
+  --on-amber: #181d26;
+
+  --font-display: 'Archivo';
+  --font-body: 'Archivo';
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
+
+  color-scheme: light;
+}
+
+/* Shared 8px spacing ladder — the editorial/cinematic tier (48-128) the RN
+ * theme's `space` token never reached. Same scale across both themes. */
+:root {
+  --s1: 8px;
+  --s2: 16px;
+  --s3: 24px;
+  --s4: 32px;
+  --s5: 48px;
+  --s6: 64px;
+  --s7: 96px;
+  --s8: 128px;
+}

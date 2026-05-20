@@ -1,5 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
+import { storage as AsyncStorage } from './adapters/storage';
 import type { Octane, OctaneSelection } from './types';
 
 const OCTANE_KEY = 'preferences.octane';
