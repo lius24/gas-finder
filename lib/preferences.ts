@@ -89,3 +89,40 @@ export async function pushRecentSearch(loc: RecentLocation): Promise<void> {
   filtered.unshift(loc);
   await AsyncStorage.setItem(RECENTS_KEY, JSON.stringify(filtered.slice(0, MAX_RECENTS)));
 }
+
+// Home location — the user's "primary" address (e.g. home or work).
+// Used as the default search anchor when GPS is unavailable, denied,
+// or the user explicitly opts to plan trips from a known address.
+const HOME_LOCATION_KEY = 'preferences.home-location';
+
+export type HomeLocation = {
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+
+export async function getHomeLocation(): Promise<HomeLocation | null> {
+  const v = await AsyncStorage.getItem(HOME_LOCATION_KEY);
+  if (!v) return null;
+  try {
+    const parsed = JSON.parse(v);
+    if (
+      typeof parsed?.label === 'string' &&
+      typeof parsed?.latitude === 'number' &&
+      typeof parsed?.longitude === 'number'
+    ) {
+      return parsed as HomeLocation;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setHomeLocation(loc: HomeLocation | null): Promise<void> {
+  if (!loc) {
+    await AsyncStorage.removeItem(HOME_LOCATION_KEY);
+    return;
+  }
+  await AsyncStorage.setItem(HOME_LOCATION_KEY, JSON.stringify(loc));
+}
