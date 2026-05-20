@@ -59,6 +59,16 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     AsyncStorage.setItem(THEME_KEY, id).catch(() => {});
   }, []);
 
+  // Expose the active theme to the static page shell as `<html data-theme>`.
+  // The PWA-injected CSS (scripts/inject-pwa-tags.mjs) uses it to constrain
+  // the Desert layout to a phone-width column on desktop while leaving the
+  // full-bleed Ferrari/Airtable themes uncapped. Web-only; no-op on native.
+  useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = themeId;
+    }
+  }, [themeId]);
+
   const value = useMemo<ThemeContextValue>(
     () => ({ theme: THEMES[themeId], themeId, setTheme, ready }),
     [themeId, setTheme, ready],

@@ -24,11 +24,33 @@ const PWA_HEAD = `
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
   <meta name="description" content="Authoritative premium-octane gas prices with net-savings decision math. No ads, no crowdsourcing." />
   <style id="gf-responsive">
-    /* Ferrari + Airtable themes are designed as full-bleed marketing pages
-       (per public/preview/*.html) — they manage their own max-width inside
-       each section. Don't trap them in a 540px column on desktop. */
-    html, body, #root { background: transparent; }
     body { overscroll-behavior-y: none; }
+
+    /* Per-theme desktop width. The Desert theme is a phone-first layout —
+       on wide screens it gets a centered 540px column with a neutral
+       surround, the way it was designed. Ferrari + Airtable are full-bleed
+       marketing pages (per public/preview/*.html) and manage their own
+       centered max-width internally, so they opt out of the column.
+
+       <html data-theme> is set at runtime by ThemeProvider. Before the
+       persisted theme resolves there is no attribute yet; Desert is the
+       default, so the bare (:not([data-theme])) state also gets the
+       column to avoid a first-paint stretch. */
+    @media (min-width: 800px) {
+      html[data-theme="desert"],
+      html[data-theme="desert"] body,
+      html:not([data-theme]),
+      html:not([data-theme]) body {
+        background: #ECE6D7;
+      }
+      html[data-theme="desert"] #root,
+      html:not([data-theme]) #root {
+        max-width: 540px;
+        margin: 0 auto;
+        background: #F4EFE6;
+        box-shadow: 0 0 0 1px rgba(40, 28, 16, 0.06), 0 6px 30px rgba(40, 28, 16, 0.08);
+      }
+    }
   </style>
 `;
 

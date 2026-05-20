@@ -39,7 +39,12 @@ export function ThemeNavBar({ state, navigation }: BottomTabBarProps) {
   // Mirror the preview's media query: hide the inline menu on narrow
   // viewports and collapse to a horizontal scroll-style chip strip
   // instead. Brand + auth pill always render.
-  const showMenu = width >= 720;
+  //
+  // The Desert theme is CSS-capped to a 540px column on desktop
+  // (scripts/inject-pwa-tags.mjs), but useWindowDimensions reports the
+  // full window width — so Desert must always use the compact layout
+  // regardless of window size, or the menu overflows its column.
+  const showMenu = themeId !== 'desert' && width >= 720;
   const styles = makeStyles(theme, themeId, showMenu);
   const userEmail = session?.user?.email ?? null;
   const avatarInitial = (userEmail?.[0] ?? '?').toUpperCase();
