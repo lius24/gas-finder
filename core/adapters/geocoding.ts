@@ -1,15 +1,20 @@
-// Geocoding adapter — Nominatim (OpenStreetMap), client-side, keyless
-// (eng-review decision D3). No API key means nothing to leak in the bundle.
+// Geocoding adapter.
 //
-// Nominatim's usage policy requires an identifying Referer/User-Agent and
-// forbids heavy or auto-triggered bulk use. Browser fetch sends Referer
-// automatically and User-Agent is a forbidden header here; for this app's
-// low-volume, user-initiated city searches that is within policy. If traffic
-// ever outgrows it, swap this one module for a keyed provider.
+// Forward geocoding and address autocomplete go through the `places-search`
+// edge function (Google Places `searchText`). Keyless OSM providers
+// (Nominatim / Photon) lack residential street coverage, so a real address
+// like "4 Riverstone Drive, Troy, NY" resolved to nothing. The Google API
+// key stays server-side in the edge function — it never reaches the browser.
+//
+// Reverse geocoding (coordinates -> city label) still uses Nominatim: it only
+// powers a low-volume "you are here" label and OSM coverage is fine at the
+// city/region zoom level.
+
+import { supabase } from '../supabase';
 
 import type { Coords } from './geolocation';
 
-const BASE = 'https://nominatim.openstreetmap.org';
+const NOMINATIM_BASE = 'https://nominatim.openstreetmap.org';
 
 // Replacement for expo-location's LocationGeocodedAddress in core/'s public
 // API surface — keeps core/ free of any React Native type dependency.
@@ -18,7 +23,12 @@ export type GeoAddress = {
   region: string | null;
 };
 
-type NominatimSearchResult = { lat: string; lon: string };
+export type AddressSuggestion = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+};
 
 type NominatimReverseResult = {
   address?: {
@@ -32,27 +42,39 @@ type NominatimReverseResult = {
   };
 };
 
+/**
+ * Query the `places-search` edge function (Google Places `searchText`).
+ * Works for partial type-ahead queries and full addresses alike. An empty
+ * array means no match; a thrown error means the request itself failed.
+ */
+async function searchPlaces(query: string): Promise<AddressSuggestion[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+
+  const { data, error } = await supabase.functions.invoke('places-search', {
+    body: { query: q },
+  });
+  if (error) {
+    throw new Error(`Address search failed: ${error.message}`);
+  }
+  return Array.isArray(data) ? (data as AddressSuggestion[]) : [];
+}
+
 /** Forward-geocode a free-text place query. Empty array = no match. */
 export async function geocode(query: string): Promise<Coords[]> {
-  const url =
-    `${BASE}/search?format=jsonv2&limit=1&q=${encodeURIComponent(query)}`;
-  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
-  if (!res.ok) {
-    throw new Error(`Geocoding failed (${res.status})`);
-  }
-  const data = (await res.json()) as NominatimSearchResult[];
-  return data
-    .map((r) => ({
-      latitude: Number(r.lat),
-      longitude: Number(r.lon),
-    }))
-    .filter((c) => Number.isFinite(c.latitude) && Number.isFinite(c.longitude));
+  const places = await searchPlaces(query);
+  return places.map((p) => ({ latitude: p.latitude, longitude: p.longitude }));
+}
+
+/** Address autocomplete for a type-ahead query. Empty array = no match. */
+export async function autocompleteAddress(query: string): Promise<AddressSuggestion[]> {
+  return searchPlaces(query);
 }
 
 /** Reverse-geocode coordinates to a city/region label. */
 export async function reverseGeocode(coords: Coords): Promise<GeoAddress | null> {
   const url =
-    `${BASE}/reverse?format=jsonv2&zoom=10` +
+    `${NOMINATIM_BASE}/reverse?format=jsonv2&zoom=10` +
     `&lat=${coords.latitude}&lon=${coords.longitude}`;
   const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
   if (!res.ok) {

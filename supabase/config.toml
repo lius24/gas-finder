@@ -37,6 +37,12 @@ verify_jwt = true
 [functions.report]
 verify_jwt = true
 
+# Forward geocoding + address autocomplete via Google Places searchText.
+# Client-facing (anon key), same gate as nearby/station. Billable — the query
+# is length-capped in the function body.
+[functions.places-search]
+verify_jwt = true
+
 # Cron-triggered worker (no client JWT). Only the service-role key (bearer
 # header) should be able to invoke it; the cron job in the README sets that.
 [functions.send-price-alerts]
