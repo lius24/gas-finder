@@ -10,6 +10,9 @@ dev-dist/
 web-build/
 expo-env.d.ts
 
+# Atlas basemap — built by scripts/build-basemap.sh, hosted in Supabase storage
+*.pmtiles
+
 # Playwright
 test-results/
 playwright-report/

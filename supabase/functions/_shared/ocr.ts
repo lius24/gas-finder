@@ -1,70 +1,112 @@
 // Server-side OCR for crowd-reported price photos.
 //
-// V1 ships as a stub that returns no parsed prices, leaving reports in
-// 'pending' for manual review. To enable automated parsing, plug in a real
-// OCR provider in `ocrImage` below (Google Cloud Vision, AWS Textract,
-// Azure Computer Vision, etc.) — the parser already accepts the raw text
-// and converts octane/price pairs.
+// Reads a gas-station price sign with Claude vision and returns the octane
+// prices it can see. Best-effort: any failure returns [] and the report row
+// stays 'pending' for manual review.
+
+import { encodeBase64 } from 'jsr:@std/encoding@1/base64';
 
 export type Octane = 86 | 87 | 89 | 91 | 93 | 94;
 export type ParsedPrice = { octane: Octane; price_cents: number };
 
-const OCTANE_VALUES: Octane[] = [86, 87, 89, 91, 93, 94];
-const PRICE_REGEX = /(\d{1,2})\s*[.\s]\s*(\d{2,3})\b/g;
+const OCTANE_VALUES: readonly Octane[] = [86, 87, 89, 91, 93, 94];
+const MIN_PRICE_CENTS = 100;
+const MAX_PRICE_CENTS = 1500;
+const SUPPORTED_MEDIA = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
 
-export function parsePricesFromText(rawText: string): ParsedPrice[] {
-  const lines = rawText.split(/\r?\n/);
-  const candidates: { octane: Octane; price_cents: number }[] = [];
+// Cheapest vision-capable model.
+const OCR_MODEL = 'claude-haiku-4-5-20251001';
 
-  for (const line of lines) {
-    const octanesOnLine: Octane[] = [];
-    for (const o of OCTANE_VALUES) {
-      const re = new RegExp(`\\b${o}\\b`);
-      if (re.test(line)) octanesOnLine.push(o);
-    }
+const PROMPT =
+  'This image is a photo of a gas station price sign. Return a JSON array of ' +
+  'the octane prices you can clearly read. Each element must be ' +
+  '{"octane": <number>, "price_cents": <integer>} where octane is one of ' +
+  '86, 87, 89, 91, 93, 94 and price_cents is the price in whole cents ' +
+  '(for example $3.49 is 349). Only include an octane if its price is ' +
+  'clearly visible. Output ONLY the JSON array, nothing else.';
 
-    const matches = [...line.matchAll(PRICE_REGEX)];
-    const prices: number[] = matches
-      .map((m) => {
-        const dollars = parseInt(m[1], 10);
-        const fractional = m[2];
-        const cents =
-          fractional.length === 3
-            ? Math.round(parseInt(fractional, 10) / 10)
-            : parseInt(fractional, 10);
-        return dollars * 100 + cents;
-      })
-      .filter((p) => p >= 100 && p <= 1500);
+/** Extract and validate octane/price pairs from Claude's text response. */
+export function parseClaudeResponse(text: string): ParsedPrice[] {
+  const match = text.match(/\[[\s\S]*?\]/);
+  if (!match) return [];
 
-    if (octanesOnLine.length === prices.length && octanesOnLine.length > 0) {
-      octanesOnLine.forEach((octane, i) => {
-        candidates.push({ octane, price_cents: prices[i] });
-      });
-      continue;
-    }
-    if (octanesOnLine.length === 1 && prices.length === 1) {
-      candidates.push({ octane: octanesOnLine[0], price_cents: prices[0] });
-    }
+  let raw: unknown;
+  try {
+    raw = JSON.parse(match[0]);
+  } catch {
+    return [];
   }
+  if (!Array.isArray(raw)) return [];
 
   const seen = new Set<Octane>();
   const result: ParsedPrice[] = [];
-  for (const c of candidates) {
-    if (!seen.has(c.octane)) {
-      seen.add(c.octane);
-      result.push(c);
+  for (const item of raw) {
+    if (typeof item !== 'object' || item === null) continue;
+    const rec = item as Record<string, unknown>;
+    const octane = rec.octane;
+    const price = rec.price_cents;
+    if (typeof octane !== 'number' || typeof price !== 'number') continue;
+    if (!OCTANE_VALUES.includes(octane as Octane)) continue;
+    if (!Number.isInteger(price) || price < MIN_PRICE_CENTS || price > MAX_PRICE_CENTS) {
+      continue;
     }
+    if (seen.has(octane as Octane)) continue;
+    seen.add(octane as Octane);
+    result.push({ octane: octane as Octane, price_cents: price });
   }
   return result;
 }
 
-// Default stub: returns empty until a provider is wired up. Reports land
-// in 'pending' for human review.
-//
-// To enable Google Cloud Vision: set GOOGLE_VISION_API_KEY in function
-// secrets, then replace this body with a fetch to
-// https://vision.googleapis.com/v1/images:annotate using TEXT_DETECTION,
-// and pipe the response into parsePricesFromText.
-export async function ocrImage(_imageBytes: Uint8Array): Promise<ParsedPrice[]> {
-  return [];
+/** Read a price-sign photo with Claude vision. Returns [] on any failure. */
+export async function ocrImage(
+  imageBytes: Uint8Array,
+  mediaType = 'image/jpeg',
+): Promise<ParsedPrice[]> {
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!apiKey) return [];
+
+  const media = SUPPORTED_MEDIA.includes(mediaType as typeof SUPPORTED_MEDIA[number]) ? mediaType : 'image/jpeg';
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      signal: controller.signal,
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: OCR_MODEL,
+        max_tokens: 256,
+        messages: [
+          {
+            role: 'user',
+            content: [
+              {
+                type: 'image',
+                source: {
+                  type: 'base64',
+                  media_type: media,
+                  data: encodeBase64(imageBytes),
+                },
+              },
+              { type: 'text', text: PROMPT },
+            ],
+          },
+        ],
+      }),
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    const text = json?.content?.[0]?.text;
+    return typeof text === 'string' ? parseClaudeResponse(text) : [];
+  } catch {
+    return [];
+  } finally {
+    clearTimeout(timer);
+  }
 }

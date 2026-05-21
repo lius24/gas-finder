@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     resolved_station_id = nearest?.[0]?.id ?? null;
   }
 
-  // Pull the uploaded photo and run OCR (stub returns []).
+  // Pull the uploaded photo and run OCR (best-effort; [] on any failure).
   let parsed_prices: { octane: number; price_cents: number }[] = [];
   try {
     const { data: blob, error: dlErr } = await supabase.storage
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       .download(photo_path);
     if (!dlErr && blob) {
       const bytes = new Uint8Array(await blob.arrayBuffer());
-      parsed_prices = await ocrImage(bytes);
+      parsed_prices = await ocrImage(bytes, blob.type || 'image/jpeg');
     }
   } catch (_e) {
     // OCR is best-effort. Leave parsed_prices empty and let manual review handle it.
