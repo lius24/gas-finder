@@ -10,12 +10,13 @@ import { Calculator, Heart, Home, Locate, Palette } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
-import { geocode } from '@core/adapters/geocoding';
 import { useAuth } from '@core/auth';
 import { listFavorites, type FavoriteWithStation } from '@core/favorites';
 import { getHomeLocation, setHomeLocation, type HomeLocation } from '@core/preferences';
 import { THEME_IDS, THEMES, type ThemeId } from '@core/theme';
 import { useSetTheme, useThemeId } from '@core/theme-provider';
+
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
 
 import './Garage.css';
 
@@ -69,9 +70,6 @@ function HomeLocationPicker() {
   const [home, setHome] = useState<HomeLocation | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [query, setQuery] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     getHomeLocation().then((h) => {
@@ -80,38 +78,10 @@ function HomeLocationPicker() {
     });
   }, []);
 
-  const save = async () => {
-    const q = query.trim();
-    if (!q) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const results = await geocode(q);
-      if (results.length === 0) {
-        setError(`Couldn't find "${q}". Try a city, zip, or full address.`);
-        return;
-      }
-      const next: HomeLocation = {
-        label: q,
-        latitude: results[0].latitude,
-        longitude: results[0].longitude,
-      };
-      await setHomeLocation(next);
-      setHome(next);
-      setEditing(false);
-      setQuery('');
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const clear = async () => {
     await setHomeLocation(null);
     setHome(null);
     setEditing(false);
-    setQuery('');
   };
 
   if (!loaded) {
@@ -136,10 +106,7 @@ function HomeLocationPicker() {
           <button
             type="button"
             className="gr-hlp-text-btn"
-            onClick={() => {
-              setEditing(true);
-              setQuery(home.label);
-            }}
+            onClick={() => setEditing(true)}
           >
             Change
           </button>
@@ -154,37 +121,16 @@ function HomeLocationPicker() {
         <p className="gr-hlp-hint">
           Set a home address so Pump can rank stations even when GPS is off.
         </p>
-        <form
-          className="gr-hlp-search-row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void save();
+        <AddressAutocomplete
+          placeholder="City, ZIP, or full address"
+          initialValue={home?.label ?? ''}
+          onSelect={(s) => {
+            void setHomeLocation({ label: s.label, latitude: s.latitude, longitude: s.longitude });
+            setHome({ label: s.label, latitude: s.latitude, longitude: s.longitude });
+            setEditing(false);
           }}
-        >
-          <input
-            className="gr-hlp-input"
-            type="search"
-            placeholder="City, zip, or full address"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            autoCapitalize="words"
-            autoCorrect="off"
-            disabled={busy}
-          />
-        </form>
+        />
         <div className="gr-hlp-actions">
-          <button
-            type="button"
-            className={`gr-hlp-primary-btn${busy || query.trim().length === 0 ? ' gr-hlp-disabled' : ''}`}
-            onClick={() => void save()}
-            disabled={busy || query.trim().length === 0}
-          >
-            {busy ? (
-              <span className="gr-spinner gr-spinner--inline" aria-label="Saving" />
-            ) : (
-              'Save home'
-            )}
-          </button>
           {home ? (
             <button
               type="button"
@@ -197,17 +143,12 @@ function HomeLocationPicker() {
             <button
               type="button"
               className="gr-hlp-ghost-btn"
-              onClick={() => {
-                setEditing(false);
-                setQuery('');
-                setError(null);
-              }}
+              onClick={() => setEditing(false)}
             >
               Cancel
             </button>
           )}
         </div>
-        {error ? <p className="gr-hlp-error">{error}</p> : null}
       </div>
     </div>
   );

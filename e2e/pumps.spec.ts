@@ -10,8 +10,8 @@ test('cold visit renders the Ferrari Pumps shell', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: /worth\s+driving\s+for/i }),
   ).toBeVisible();
-  // Station cards render (sample cards when no live data).
-  await expect(page.locator('.fp-card').first()).toBeVisible();
+  // The city-search shell is always present, with or without live data.
+  await expect(page.getByRole('combobox')).toBeVisible();
 });
 
 test('octane tabs toggle selection', async ({ page }) => {
@@ -46,4 +46,13 @@ test('sign-in route shows the email form', async ({ page }) => {
   await page.goto('/sign-in');
   await expect(page.getByRole('heading', { name: /sign in to pump/i })).toBeVisible();
   await expect(page.getByPlaceholder(/you@example/i)).toBeVisible();
+});
+
+test('city search shows an autocomplete dropdown', async ({ page }) => {
+  await page.goto('/');
+  const search = page.getByRole('combobox');
+  await search.fill('Troy');
+  // Photon is a live external call; allow a generous window, assert the
+  // listbox appears (results or a message — either proves the component wired).
+  await expect(page.getByRole('listbox')).toBeVisible({ timeout: 10_000 });
 });

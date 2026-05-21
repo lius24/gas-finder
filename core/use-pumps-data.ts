@@ -8,7 +8,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-import { geocode, reverseGeocode, type GeoAddress } from './adapters/geocoding';
+import { reverseGeocode, type GeoAddress } from './adapters/geocoding';
 import { getCurrentCoords, GeolocationError } from './adapters/geolocation';
 import { useAuth } from './auth';
 import { annotateWithSavings, type AnnotatedStation } from './decision-math';
@@ -49,9 +49,7 @@ export function usePumpsData() {
   const [coords, setCoords] = useState<Coords | null>(null);
   const [usingCurrentLocation, setUsingCurrentLocation] = useState(true);
   const [currentLocationLabel, setCurrentLocationLabel] = useState<string | null>(null);
-  const [searchInput, setSearchInput] = useState('');
   const [searchLabel, setSearchLabel] = useState<string | null>(null);
-  const [searching, setSearching] = useState(false);
   const [recents, setRecents] = useState<RecentLocation[]>([]);
   const [stations, setStations] = useState<StationWithPrice[]>([]);
   const [sort, setSortState] = useState<SortKey>('cheapest');
@@ -163,7 +161,6 @@ export function usePumpsData() {
     }
     const next = { latitude: position.latitude, longitude: position.longitude };
     setSearchLabel(null);
-    setSearchInput('');
     setUsingCurrentLocation(true);
     setCoords(next);
     try {
@@ -192,36 +189,22 @@ export function usePumpsData() {
   const applyRecent = useCallback((loc: RecentLocation) => {
     setUsingCurrentLocation(false);
     setSearchLabel(loc.label);
-    setSearchInput('');
     setCoords({ latitude: loc.latitude, longitude: loc.longitude });
     setLoading(true);
   }, []);
 
-  const submitSearch = useCallback(async () => {
-    const q = searchInput.trim();
-    if (!q) return;
-    setSearching(true);
-    setError(null);
-    try {
-      const results = await geocode(q);
-      if (results.length === 0) {
-        setError(`Couldn't find "${q}" — try a city or ZIP.`);
-        return;
-      }
-      const r = results[0];
-      const next: RecentLocation = { label: q, latitude: r.latitude, longitude: r.longitude };
+  const applyLocationSelection = useCallback(
+    async (loc: { label: string; latitude: number; longitude: number }) => {
+      setError(null);
       setUsingCurrentLocation(false);
-      setCoords({ latitude: r.latitude, longitude: r.longitude });
-      setSearchLabel(q);
+      setSearchLabel(loc.label);
+      setCoords({ latitude: loc.latitude, longitude: loc.longitude });
       setLoading(true);
-      await pushRecentSearch(next);
+      await pushRecentSearch(loc);
       setRecents(await getRecentSearches());
-    } catch {
-      setError("Couldn't search right now — check your connection and retry.");
-    } finally {
-      setSearching(false);
-    }
-  }, [searchInput]);
+    },
+    [],
+  );
 
   const onRefresh = useCallback(async () => {
     if (!coords) return;
@@ -308,14 +291,11 @@ export function usePumpsData() {
     coords,
     usingCurrentLocation,
     currentLocationLabel,
-    searchInput,
-    setSearchInput,
     searchLabel,
-    searching,
     recents,
     applyCurrentLocation,
     applyRecent,
-    submitSearch,
+    applyLocationSelection,
 
     // refresh
     onRefresh,
