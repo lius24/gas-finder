@@ -79,24 +79,42 @@ export function SignIn() {
     setNotice(null);
     setLoading(true);
     try {
-      const { error: err } = await supabase.auth.signInWithOAuth({
+      // skipBrowserRedirect so we can probe the authorize URL before
+      // navigating. A disabled provider returns a 4xx at that endpoint —
+      // *after* the browser has already left the app — so it never comes
+      // back as a value JS can catch. Without the probe the user lands on
+      // a raw Supabase JSON error page.
+      const { data, error: err } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin },
+        options: {
+          redirectTo: window.location.origin,
+          skipBrowserRedirect: true,
+        },
       });
-      if (err) {
-        // Most common case: provider not enabled in Supabase dashboard.
-        if (/provider/i.test(err.message) || /not enabled/i.test(err.message)) {
-          setError(
-            "Google sign-in isn't enabled yet. Use email below instead.",
-          );
-        } else {
-          setError(err.message);
-        }
+      if (err || !data?.url) {
+        setError("Google sign-in isn't available right now. Use email below instead.");
         setLoading(false);
         return;
       }
-      // signInWithOAuth navigates away — the auth listener picks up the
-      // session when the user returns. Leave loading=true to prevent flicker.
+      // An enabled provider 3xx-redirects the authorize endpoint toward
+      // Google (an opaque redirect under redirect:'manual'); a disabled one
+      // returns a readable 4xx. If the probe can't tell (CORS / network),
+      // navigate anyway — never block a sign-in that might actually work.
+      let providerDisabled = false;
+      try {
+        const probe = await fetch(data.url, { method: 'GET', redirect: 'manual' });
+        providerDisabled = probe.type !== 'opaqueredirect' && probe.status >= 400;
+      } catch {
+        providerDisabled = false;
+      }
+      if (providerDisabled) {
+        setError("Google sign-in isn't enabled yet. Use email below instead.");
+        setLoading(false);
+        return;
+      }
+      // Hand off to the OAuth flow. The auth listener picks up the session
+      // when the user returns; leave loading=true to prevent flicker.
+      window.location.href = data.url;
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setLoading(false);
