@@ -1,0 +1,81 @@
+.addr-ac {
+  position: relative;
+  width: 100%;
+}
+
+.addr-ac-input {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-md);
+  padding: 11px 14px;
+  font-size: 14px;
+  color: var(--ink);
+  outline: none;
+}
+
+.addr-ac-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.addr-ac-input:focus {
+  border-color: var(--rust);
+}
+
+.addr-ac-spinner {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid var(--paper-edge);
+  border-top-color: var(--rust);
+  border-radius: 50%;
+  animation: addr-ac-spin 700ms linear infinite;
+}
+
+@keyframes addr-ac-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.addr-ac-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-md);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.addr-ac-item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 12px;
+  font-size: 14px;
+  color: var(--ink);
+  background: transparent;
+  border-radius: var(--radius-sm);
+}
+
+.addr-ac-item:hover,
+.addr-ac-item--active {
+  background: var(--paper-edge);
+}
+
+.addr-ac-msg {
+  padding: 10px 12px;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
