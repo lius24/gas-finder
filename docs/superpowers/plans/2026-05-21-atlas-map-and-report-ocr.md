@@ -6,7 +6,7 @@
 
 **Architecture:** Atlas renders a MapLibre GL map with a self-hosted Protomaps basemap, driven by the existing `usePumpsData()` hook so the map and the Pumps list never diverge. Report's stubbed `ocrImage()` is replaced with a Claude vision call that returns structured octane→price pairs.
 
-**Tech Stack:** Vite + React 19 + React Router 7, TypeScript; MapLibre GL JS + PMTiles + protomaps-themes-base; Supabase edge functions (Deno); Anthropic Messages API.
+**Tech Stack:** Vite + React 19 + React Router 7, TypeScript; MapLibre GL JS + PMTiles + @protomaps/basemaps; Supabase edge functions (Deno); Anthropic Messages API.
 
 Spec: `docs/superpowers/specs/2026-05-21-atlas-map-and-report-ocr-design.md`
 
@@ -295,8 +295,8 @@ No code changes in this task. Phase 1 is complete once verification passes.
 
 - [ ] **Step 1: Install the packages**
 
-Run: `npm install maplibre-gl pmtiles protomaps-themes-base`
-Expected: three packages added to `dependencies`.
+Run: `npm install maplibre-gl pmtiles @protomaps/basemaps`
+Expected: three packages added to `dependencies` (`maplibre-gl` v5, `pmtiles` v4, `@protomaps/basemaps` v5). Note: the older `protomaps-themes-base` package is deprecated — use `@protomaps/basemaps`.
 
 - [ ] **Step 2: Add the basemap URL env var**
 
@@ -570,7 +570,7 @@ Create `src/components/MapView.tsx`:
 import { useEffect, useRef } from 'react';
 import maplibregl from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
-import layers from 'protomaps-themes-base';
+import { layers, DARK, LIGHT } from '@protomaps/basemaps';
 
 import { stationMarkers } from '@core/atlas-markers';
 import type { AnnotatedStation } from '@core/decision-math';
@@ -585,7 +585,9 @@ const BASEMAP_URL = import.meta.env.EXPO_PUBLIC_BASEMAP_URL as string;
 const protocol = new Protocol();
 maplibregl.addProtocol('pmtiles', protocol.tile);
 
+// @protomaps/basemaps v5: layers(source, flavorObject, { lang }).
 function buildStyle(theme: 'dark' | 'light'): maplibregl.StyleSpecification {
+  const flavor = theme === 'dark' ? DARK : LIGHT;
   return {
     version: 8,
     glyphs:
@@ -599,7 +601,7 @@ function buildStyle(theme: 'dark' | 'light'): maplibregl.StyleSpecification {
           '<a href="https://protomaps.com">Protomaps</a> © <a href="https://openstreetmap.org">OpenStreetMap</a>',
       },
     },
-    layers: layers('protomaps', theme),
+    layers: layers('protomaps', flavor, { lang: 'en' }),
   };
 }
 
@@ -674,7 +676,7 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
 }
 ```
 
-Note for the implementer: `maplibre-gl` constructor option names and the `protomaps-themes-base` export shape both shift between major versions. After creating the file, run the type-check in Step 3 — if `StyleSpecification` / `NavigationControl` / `Map` options mismatch, or if `layers` is a named export rather than default (`import { layers } from 'protomaps-themes-base'`), adjust the import/types to the installed version (do not change behavior).
+Note for the implementer: `maplibre-gl` v5 constructor/option types occasionally differ from older docs. After creating the file, run the type-check in Step 3 — if `StyleSpecification` / `NavigationControl` / `Map` options mismatch, or if `addProtocol`'s callback shape differs, adjust to the installed `maplibre-gl@5` and `pmtiles@4` types (do not change behavior). The `@protomaps/basemaps` import and the `layers(source, flavor, {lang})` call above are correct for v5.7.x.
 
 - [ ] **Step 3: Type-check**
 

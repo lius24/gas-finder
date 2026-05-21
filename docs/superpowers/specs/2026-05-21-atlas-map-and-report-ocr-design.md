@@ -42,7 +42,7 @@ order.
 - **Basemap: Protomaps**, self-hosted as a single `.pmtiles` file. Keyless and
   free — no account, no per-load limits. The `pmtiles` JS library registers a
   `pmtiles://` protocol handler with MapLibre.
-- **Map style:** generated from `protomaps-themes-base`, which emits MapLibre
+- **Map style:** generated from `@protomaps/basemaps`, which emits MapLibre
   style layers for the Protomaps tile schema. Two themes: the package's `dark`
   flavor for Ferrari, `light` for Airtable.
 
@@ -106,7 +106,7 @@ HTTP range requests. Supabase Storage does.
 ### Theming
 
 Two map styles (dark for Ferrari, light for Airtable) generated from
-`protomaps-themes-base`. The active theme comes from the existing
+`@protomaps/basemaps`. The active theme comes from the existing
 `ThemeProvider`; a change re-applies the style on the live map instance.
 Marker styling uses the existing CSS custom properties so markers match each
 theme. `maplibre-gl/dist/maplibre-gl.css` is imported once.
@@ -184,7 +184,7 @@ Claude returns structured data directly, so the text-pairing step is dead code.
 
 ## Dependencies + setup
 
-- New npm packages: `maplibre-gl`, `pmtiles`, `protomaps-themes-base`.
+- New npm packages: `maplibre-gl`, `pmtiles`, `@protomaps/basemaps`.
 - New ops setup (one-time): build the `.pmtiles` extract, raise the Supabase
   Storage per-file limit, create the public `basemap` bucket, upload the file.
 - New secret: `ANTHROPIC_API_KEY` on the Supabase project.
