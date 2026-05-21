@@ -1,0 +1,345 @@
+/* Sign-in route — all classes prefixed si- to avoid collisions.
+ * Theme-aware: color/font/spacing is all CSS custom properties from
+ * :root[data-theme] (Desert / Ferrari / Airtable). No hardcoded theme colors.
+ * Layout: centered card, max-width 440px, works on mobile & desktop.
+ */
+
+/* -- Page shell ------------------------------------------------------------ */
+.si-page {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 100%;
+  padding: var(--s7) var(--s3) var(--s6);
+}
+
+@media (max-width: 480px) {
+  .si-page {
+    align-items: flex-start;
+    padding: var(--s4) var(--s2) var(--s5);
+  }
+}
+
+/* -- Card ------------------------------------------------------------------ */
+.si-card {
+  width: 100%;
+  max-width: 440px;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: var(--s5) var(--s5) var(--s6);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+@media (max-width: 480px) {
+  .si-card {
+    border-radius: var(--radius-md);
+    padding: var(--s4) var(--s3) var(--s5);
+  }
+}
+
+/* -- Brand mark ------------------------------------------------------------ */
+.si-brand-rule {
+  width: 36px;
+  height: 2px;
+  background: var(--rust);
+  margin-bottom: var(--s1);
+  flex-shrink: 0;
+}
+
+/* -- Kicker + title -------------------------------------------------------- */
+.si-kicker {
+  margin: 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--rust);
+}
+
+.si-title {
+  margin: 0;
+  font-family: var(--font-display), serif;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+}
+
+/* -- Lede ------------------------------------------------------------------ */
+.si-lede {
+  margin: 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--ink-soft);
+}
+
+.si-lede-strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* -- Google button --------------------------------------------------------- */
+.si-google-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 16px;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 9999px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease;
+  text-align: left;
+  margin-top: var(--s1);
+}
+
+.si-google-btn:hover:not(:disabled) {
+  border-color: var(--ink-soft);
+  background: var(--bg);
+}
+
+.si-google-mark {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid #dadce0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.si-google-mark-letter {
+  font-family: Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: #4285f4;
+  line-height: 1;
+}
+
+/* -- "or email" divider ---------------------------------------------------- */
+.si-divider {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: var(--s1) 0;
+}
+
+.si-divider-line {
+  flex: 1;
+  height: 1px;
+  background: var(--paper-edge);
+}
+
+.si-divider-text {
+  font-family: var(--font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+/* -- Form ------------------------------------------------------------------ */
+.si-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s2);
+}
+
+.si-label {
+  font-family: var(--font-body), sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 2px;
+}
+
+.si-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 13px 16px;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: 9999px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  color: var(--ink);
+  outline: none;
+  transition: border-color 180ms ease;
+  -webkit-appearance: none;
+}
+
+.si-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.si-input:focus {
+  border-color: var(--rust);
+}
+
+.si-input:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* OTP code input — monospaced, centered, generous tracking */
+.si-input--otp {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 22px;
+  letter-spacing: 6px;
+  text-align: center;
+}
+
+/* -- Primary (rust) button ------------------------------------------------- */
+.si-primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px;
+  background: var(--rust);
+  color: var(--on-rust);
+  border: none;
+  border-radius: 9999px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+  transition: background 180ms ease, opacity 180ms ease;
+  min-height: 48px;
+}
+
+.si-primary-btn:hover:not(:disabled) {
+  background: var(--rust-dark);
+}
+
+/* -- Outline (sign-out) button --------------------------------------------- */
+.si-outline-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 16px;
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+  border-radius: 9999px;
+  font-family: var(--font-body), sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 180ms ease, opacity 180ms ease;
+  min-height: 48px;
+  margin-top: var(--s2);
+}
+
+.si-outline-btn:hover:not(:disabled) {
+  background: var(--paper-edge);
+}
+
+/* -- Disabled state (applied via class alongside the disabled attr) --------- */
+.si-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* -- Button icon ----------------------------------------------------------- */
+.si-btn-icon {
+  flex-shrink: 0;
+}
+
+/* -- Notices / errors ------------------------------------------------------ */
+.si-notice {
+  margin: 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+}
+
+.si-error {
+  margin: 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--danger);
+}
+
+/* -- OTP footer links ------------------------------------------------------ */
+.si-otp-footer {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: var(--s1);
+}
+
+.si-link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: color 150ms ease;
+  text-align: left;
+}
+
+.si-link-btn:hover:not(:disabled) {
+  color: var(--ink);
+}
+
+.si-link-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* -- CSS spinner ----------------------------------------------------------- */
+.si-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--paper-edge);
+  border-top-color: var(--rust);
+  border-radius: 50%;
+  animation: si-spin 700ms linear infinite;
+  flex-shrink: 0;
+}
+
+/* Center the page-level spinner inside the card */
+.si-card > .si-spinner {
+  align-self: center;
+  margin: var(--s4) auto;
+}
+
+/* Inline spinner inside a button — inherits button's on-rust context */
+.si-spinner--inline {
+  border-color: rgba(255, 255, 255, 0.3);
+  border-top-color: var(--on-rust);
+}
+
+@keyframes si-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -1,0 +1,507 @@
+/* Station Detail screen — sd- prefix to avoid collisions.
+ * Uses CSS custom properties from :root[data-theme] — never hardcodes
+ * theme colors. 8px ladder (--s1..--s8) from themes.css.
+ */
+
+/* ── Page shell ─────────────────────────────────────────────────────────── */
+
+.sd-page {
+  min-height: 100dvh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+}
+
+.sd-scroll {
+  flex: 1;
+  padding: var(--s3);
+  padding-bottom: var(--s8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--s3);
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ── Centered states (loading / error) ──────────────────────────────────── */
+
+.sd-center {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s2);
+  padding: var(--s3);
+  background: var(--bg);
+}
+
+.sd-error {
+  margin: 0;
+  color: var(--danger);
+  font-family: var(--font-body);
+  font-size: 16px;
+  font-style: italic;
+  text-align: center;
+}
+
+.sd-retry-btn {
+  margin-top: var(--s2);
+  padding: 10px 18px;
+  border-radius: var(--radius-md);
+  background: var(--rust);
+  color: var(--on-rust);
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  border: none;
+  cursor: pointer;
+}
+
+.sd-retry-btn:hover {
+  background: var(--rust-dark);
+}
+
+/* ── Spinner ────────────────────────────────────────────────────────────── */
+
+.sd-spinner {
+  width: 28px;
+  height: 28px;
+  border: 2.5px solid var(--paper-edge);
+  border-top-color: var(--rust);
+  border-radius: 50%;
+  animation: sd-spin 700ms linear infinite;
+}
+
+@keyframes sd-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ── Header card ────────────────────────────────────────────────────────── */
+
+.sd-header-card {
+  background: var(--paper);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--paper-edge);
+  padding: var(--s3);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.sd-header-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sd-header-label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--rust);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.sd-heart-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 2px;
+  line-height: 0;
+}
+
+.sd-heart-btn:active {
+  opacity: 0.5;
+}
+
+.sd-heart-icon {
+  color: var(--ink-soft);
+  transition: color 180ms ease;
+}
+
+.sd-heart-icon--active {
+  color: var(--rust);
+}
+
+.sd-brand {
+  margin: 6px 0 0;
+  font-family: var(--font-display);
+  font-size: 30px;
+  color: var(--ink);
+  line-height: 1.13;
+}
+
+.sd-subbrand {
+  margin: 2px 0 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+.sd-divider {
+  height: 1px;
+  background: var(--paper-edge);
+  margin: var(--s2) 0;
+}
+
+.sd-address {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--ink-soft);
+  line-height: 1.45;
+}
+
+.sd-distance {
+  margin: 4px 0 0;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-faint);
+}
+
+/* ── Pump panel ─────────────────────────────────────────────────────────── */
+
+.sd-pump-panel {
+  background: var(--display-surface);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.sd-pump-header {
+  padding: 8px var(--s2);
+  background: var(--rust-dark);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sd-pump-header-text {
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--on-rust);
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+.sd-pump-row {
+  display: flex;
+  align-items: center;
+  padding: var(--s2) var(--s3);
+  border-bottom: 1px solid rgba(212, 136, 44, 0.18);
+}
+
+.sd-pump-row:last-child {
+  border-bottom: none;
+}
+
+.sd-pump-row--active {
+  background: rgba(212, 136, 44, 0.08);
+}
+
+.sd-pump-row-left {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sd-pump-octane {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: var(--on-rust);
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+.sd-pump-octane--active {
+  color: var(--display-ink);
+}
+
+.sd-pump-octane-label {
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.sd-pump-row-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.sd-pump-digits {
+  display: flex;
+  align-items: flex-end;
+}
+
+.sd-price-whole {
+  font-family: var(--font-display);
+  font-size: 32px;
+  color: var(--display-ink);
+  line-height: 1.06;
+}
+
+.sd-price-dot {
+  font-family: var(--font-display);
+  font-size: 32px;
+  color: var(--display-ink);
+  line-height: 1.06;
+  margin: 0 1px;
+}
+
+.sd-price-fraction {
+  font-family: var(--font-display);
+  font-size: 22px;
+  color: var(--display-ink);
+  line-height: 1.45;
+  margin-bottom: 1px;
+}
+
+.sd-price-missing {
+  font-family: var(--font-body);
+  font-size: 24px;
+  color: rgba(212, 136, 44, 0.3);
+  letter-spacing: 4px;
+}
+
+.sd-price-meta {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+/* ── Action buttons ─────────────────────────────────────────────────────── */
+
+.sd-primary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--display-surface);
+  color: var(--display-ink);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  transition: opacity 140ms ease;
+}
+
+.sd-primary-btn:active {
+  opacity: 0.85;
+}
+
+.sd-secondary-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--paper);
+  color: var(--rust);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  border: 1.5px solid var(--rust);
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.sd-secondary-btn:active {
+  opacity: 0.85;
+}
+
+/* ── Price watch / alert card ───────────────────────────────────────────── */
+
+.sd-alert-card {
+  margin-top: var(--s2);
+  padding: var(--s3);
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  border: 1px dashed var(--paper-edge);
+}
+
+.sd-alert-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.sd-alert-header-line {
+  flex: 1;
+  height: 1px;
+  background: var(--paper-edge);
+}
+
+.sd-alert-title {
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rust);
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.sd-alert-hint {
+  margin: 4px 0 var(--s2);
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+.sd-alert-section {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--ink-faint);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-top: var(--s1);
+  margin-bottom: 6px;
+}
+
+.sd-alert-octane-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: var(--s2);
+}
+
+.sd-alert-chip {
+  flex: 1;
+  padding: 9px 0;
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  border: 1px solid var(--paper-edge);
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  text-align: center;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.sd-alert-chip--active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--amber);
+}
+
+.sd-alert-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: var(--s2);
+}
+
+.sd-alert-dollar {
+  font-family: var(--font-body);
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--rust);
+}
+
+.sd-alert-input {
+  flex: 1;
+  background: var(--bg);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--paper-edge);
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 18px;
+  color: var(--ink);
+  outline: none;
+}
+
+.sd-alert-input:focus {
+  border-color: var(--rust);
+}
+
+.sd-alert-input::placeholder {
+  color: var(--ink-faint);
+}
+
+.sd-alert-save-btn {
+  padding: 12px 18px;
+  border-radius: var(--radius-sm);
+  background: var(--rust);
+  color: var(--on-rust);
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  border: none;
+  cursor: pointer;
+  transition: opacity 140ms ease;
+}
+
+.sd-alert-save-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.sd-alert-save-btn:not(:disabled):active {
+  opacity: 0.8;
+}
+
+.sd-alert-active-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: var(--s2);
+  margin-top: var(--s2);
+  border-top: 1px dashed var(--paper-edge);
+}
+
+.sd-alert-active-text {
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--ink-soft);
+  flex: 1;
+}
+
+.sd-alert-clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-body);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--rust);
+  padding: 4px;
+}
+
+.sd-alert-clear-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
