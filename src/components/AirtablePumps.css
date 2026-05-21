@@ -232,31 +232,7 @@
 }
 
 .ap-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 14px;
-  background: var(--surface-soft);
-  border: 1px solid var(--hairline);
-  border-radius: 18px;
-}
-
-.ap-search-icon {
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.ap-search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-size: 14px;
-  color: var(--ink);
-}
-
-.ap-search-input::placeholder {
-  color: var(--muted);
+  margin-bottom: var(--s3);
 }
 
 /* Section head */
@@ -529,16 +505,25 @@ a.ap-feature:hover {
 }
 
 /* -- Empty / error / notes ---------------------------------------------- */
-.ap-empty-kicker {
-  margin: 8px 0 0;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: 0.4px;
-  text-transform: uppercase;
-  color: var(--muted);
+.ap-empty {
+  text-align: center;
+  margin: var(--s5) 0;
 }
 
-.ap-empty-text,
+.ap-empty-title {
+  margin: 0 0 8px;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.ap-empty-body {
+  margin: 0 auto;
+  max-width: 420px;
+  font-size: 14px;
+  color: var(--body);
+}
+
 .ap-hidden-note {
   margin: 8px 0 0;
   text-align: center;

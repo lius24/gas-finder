@@ -3,8 +3,10 @@
 // (coral / forest / cream / peach / mustard / mint). A real-CSS port of
 // public/preview/airtable.html on the shared usePumpsData() hook.
 
-import { MapPin, Navigation, Search } from 'lucide-react';
+import { MapPin, Navigation } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 import { formatSavingsRange } from '@core/decision-math';
 import { formatDistance } from '@core/geo';
@@ -18,24 +20,6 @@ import './AirtablePumps.css';
 // Signature-color rotation — one per station card, cycled by rank.
 const FEATURE_COLORS = ['coral', 'forest', 'cream', 'peach', 'mustard', 'mint'] as const;
 
-type SampleStation = {
-  brand: string;
-  addr: string;
-  dollars: string;
-  cents: string;
-  octane: string;
-  kicker: string;
-  savings: string | null;
-};
-
-const SAMPLE_STATIONS: SampleStation[] = [
-  { brand: 'Sunoco', addr: '125 Hoosick St, Troy, NY · 2.0 mi · refreshed 4h ago', dollars: '5', cents: '30', octane: '93', kicker: '★ Cheapest premium · 5 mi radius', savings: 'Save $1.27 – $1.93 / fill-up' },
-  { brand: "Stewart's Shops", addr: "110 Hoosick St, Troy, NY · 1.4 mi · refreshed 11h ago", dollars: '5', cents: '56', octane: '91', kicker: "02 · Stewart's brand-set 91", savings: 'Save $0.80 – $1.20 / fill-up' },
-  { brand: "Stewart's Shops", addr: '8 Vandenburgh Ave, Troy, NY · 0.5 mi · 3d ago', dollars: '5', cents: '66', octane: '91', kicker: '03 · ⌖ closest · baseline', savings: null },
-  { brand: 'Speedway', addr: '175 Hoosick St, Troy, NY · 2.1 mi · 3d old · stale', dollars: '5', cents: '40', octane: '93', kicker: '04 · Speedway · stale reading', savings: 'Save $0.94 – $1.42 / fill-up' },
-  { brand: 'Gulf', addr: '95 Hill St, Troy, NY · 1.8 mi · refreshed 18h ago', dollars: '5', cents: '40', octane: '93', kicker: '05 · Gulf · costs extra', savings: 'Costs $0.21 – $0.31 extra / fill-up' },
-  { brand: 'Cumberland Farms', addr: '625 Pawling Ave, Troy, NY · 3.4 mi · refreshed 1d ago', dollars: '5', cents: '50', octane: '93', kicker: '06 · Cumberland Farms', savings: 'Save $0.49 – $0.74 / fill-up' },
-];
 
 function radiusMiLabel(m: number): string {
   if (m === 1609) return '1';
@@ -74,12 +58,9 @@ export function AirtablePumps({ data }: { data: PumpsData }) {
     setSort,
     usingCurrentLocation,
     currentLocationLabel,
-    searchInput,
-    setSearchInput,
     searchLabel,
-    searching,
     applyCurrentLocation,
-    submitSearch,
+    applyLocationSelection,
   } = data;
 
   const hasData = sortedStations.length > 0;
@@ -87,55 +68,42 @@ export function AirtablePumps({ data }: { data: PumpsData }) {
     !loading &&
     (stations.length === 0 || stations.every((s) => s.price_cents === null));
 
-  const cards: CardData[] = hasData
-    ? sortedStations.map((item, index) => {
-        const isCheapest = item.id === cheapestId;
-        const isClosest = item.id === closestId;
-        const rank = (index + 1).toString().padStart(2, '0');
-        const stale = staleLabel(item.observed_at);
-        const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
-        const positive = item.savings ? item.savings.centralDollars > 0 : false;
-        return {
-          key: item.id,
-          color: FEATURE_COLORS[index % FEATURE_COLORS.length],
-          kicker: isCheapest
-            ? '★ Cheapest premium · 5 mi radius'
-            : isClosest
-              ? `${rank} · ⌖ closest · baseline`
-              : `${rank} · ${item.brand ?? item.name}`,
-          brand: item.brand ?? item.name,
-          addr: `${item.address} · ${formatDistance(item.distance_meters)}${
-            stale ? ` · ${stale}` : ''
-          }`,
-          price:
-            item.price_cents !== null
-              ? {
-                  d: String(Math.floor(item.price_cents / 100)),
-                  c: (item.price_cents % 100).toString().padStart(2, '0'),
-                }
-              : null,
-          octaneLabel: `${item.octane ?? '—'} octane · Google Places`,
-          savings: savingsText
-            ? `${positive ? 'Save' : 'Costs'} ${savingsText
-                .replace('Save ', '')
-                .replace('Costs ', '')}`
-            : null,
-          showSavingsHint: isCheapest,
-          station: item,
-        };
-      })
-    : SAMPLE_STATIONS.map((s, i) => ({
-        key: s.brand + i,
-        color: FEATURE_COLORS[i % FEATURE_COLORS.length],
-        kicker: s.kicker,
-        brand: s.brand,
-        addr: s.addr,
-        price: { d: s.dollars, c: s.cents },
-        octaneLabel: `${s.octane} octane · Google Places`,
-        savings: s.savings,
-        showSavingsHint: false,
-        station: null,
-      }));
+  const cards: CardData[] = sortedStations.map((item, index) => {
+    const isCheapest = item.id === cheapestId;
+    const isClosest = item.id === closestId;
+    const rank = (index + 1).toString().padStart(2, '0');
+    const stale = staleLabel(item.observed_at);
+    const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
+    const positive = item.savings ? item.savings.centralDollars > 0 : false;
+    return {
+      key: item.id,
+      color: FEATURE_COLORS[index % FEATURE_COLORS.length],
+      kicker: isCheapest
+        ? '★ Cheapest premium · 5 mi radius'
+        : isClosest
+          ? `${rank} · ⌖ closest · baseline`
+          : `${rank} · ${item.brand ?? item.name}`,
+      brand: item.brand ?? item.name,
+      addr: `${item.address} · ${formatDistance(item.distance_meters)}${
+        stale ? ` · ${stale}` : ''
+      }`,
+      price:
+        item.price_cents !== null
+          ? {
+              d: String(Math.floor(item.price_cents / 100)),
+              c: (item.price_cents % 100).toString().padStart(2, '0'),
+            }
+          : null,
+      octaneLabel: `${item.octane ?? '—'} octane · Google Places`,
+      savings: savingsText
+        ? `${positive ? 'Save' : 'Costs'} ${savingsText
+            .replace('Save ', '')
+            .replace('Costs ', '')}`
+        : null,
+      showSavingsHint: isCheapest,
+      station: item,
+    };
+  });
 
   const sheetRows = sortedStations.slice(0, 6);
 
@@ -226,25 +194,18 @@ export function AirtablePumps({ data }: { data: PumpsData }) {
           {!usingCurrentLocation ? <span className="ap-gps-pill">Use GPS</span> : null}
         </button>
 
-        <form
-          className="ap-search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitSearch();
-          }}
-        >
-          <Search size={14} className="ap-search-icon" />
-          <input
-            className="ap-search-input"
-            type="search"
+        <div className="ap-search">
+          <AddressAutocomplete
             placeholder="Search a city, zip, or address"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            disabled={searching}
-            autoCapitalize="none"
+            onSelect={(s) =>
+              applyLocationSelection({
+                label: s.label,
+                latitude: s.latitude,
+                longitude: s.longitude,
+              })
+            }
           />
-          {searching ? <span className="ap-spinner" aria-label="Searching" /> : null}
-        </form>
+        </div>
 
         <div className="ap-section-head">
           <h2 className="ap-section-title">Pumps. Color-coded by ranking.</h2>
@@ -317,25 +278,24 @@ export function AirtablePumps({ data }: { data: PumpsData }) {
         ) : null}
 
         {!loading && showEmpty ? (
-          <p className="ap-empty-kicker">Six pumps. Color-coded by ranking.</p>
+          <div className="ap-empty">
+            <p className="ap-empty-title">No premium stations near you yet</p>
+            <p className="ap-empty-body">
+              {stations.length === 0
+                ? `We don't have pump data for this spot yet. Search a city or ZIP above, or widen the radius.`
+                : `Stations are here, but no live prices for ${
+                    octane === 'premium' ? 'any premium octane' : `${octane} octane`
+                  } yet.`}
+            </p>
+          </div>
         ) : null}
 
-        {!loading ? (
+        {!loading && hasData ? (
           <div className="ap-stations">
             {cards.map((cd) => (
               <FeatureCard key={cd.key} cd={cd} />
             ))}
           </div>
-        ) : null}
-
-        {!loading && showEmpty ? (
-          <p className="ap-empty-text">
-            {stations.length === 0
-              ? `No live stations within ${radiusMiLabel(radius)} mi yet — try a wider radius or share your location.`
-              : `Stations are here, but no prices for ${
-                  octane === 'premium' ? 'any premium octane' : `${octane} octane`
-                } yet.`}
-          </p>
         ) : null}
 
         {hasData && hiddenUnpriced > 0 ? (
