@@ -61,6 +61,10 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
   // Keep the latest click handler without re-running the marker effect.
   const onClickRef = useRef(onStationClick);
   onClickRef.current = onStationClick;
+  // Tracks the theme currently applied to the map, so the theme effect only
+  // calls setStyle on a real change — not on mount (the init effect already
+  // applied it) and not on React StrictMode's double-invoke.
+  const appliedTheme = useRef(theme);
 
   // Initialize the map once.
   useEffect(() => {
@@ -88,12 +92,15 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
     }
   }, [center]);
 
-  // Swap the basemap style when the theme changes.
+  // Swap the basemap style when the theme changes (skip the initial mount —
+  // the init effect already applied the correct style).
   // Re-attach custom DOM markers once the new style has loaded — setStyle can
   // detach them, and the marker-sync effect does not re-run on a theme change.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    if (appliedTheme.current === theme) return;
+    appliedTheme.current = theme;
     map.setStyle(buildStyle(theme));
     map.once('styledata', () => {
       markersRef.current.forEach((m) => m.addTo(map));

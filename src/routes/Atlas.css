@@ -1,8 +1,9 @@
 .atlas-page {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 0;
+  /* `.app-main` is display:block, so flex:1 wouldn't apply here — fill its
+     definite height directly so the map gets the full viewport. */
+  height: 100%;
 }
 
 .atlas-toolbar {
