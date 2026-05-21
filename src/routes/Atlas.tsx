@@ -1,19 +1,86 @@
-// Atlas (map) stays a stub on web — react-native-maps has no web port and
-// the interactive map is deferred to v1.1 / MapLibre (design doc, NOT in
-// Scope). This placeholder mirrors the RN atlas-map.web.tsx copy.
+import { useNavigate } from 'react-router-dom';
 
-import './Placeholder.css';
+import { usePumpsData } from '@core/use-pumps-data';
+import { useThemeId } from '@core/theme-provider';
+import type { OctaneSelection } from '@core/types';
+
+import { AddressAutocomplete } from '../components/AddressAutocomplete';
+import { MapView } from '../components/MapView';
+
+import './Atlas.css';
+
+const OCTANE_TABS: { key: OctaneSelection; label: string }[] = [
+  { key: 87, label: '87' },
+  { key: 89, label: '89' },
+  { key: 'premium', label: '91+' },
+];
 
 export function Atlas() {
+  const navigate = useNavigate();
+  const themeId = useThemeId();
+  const {
+    sortedStations,
+    cheapestId,
+    coords,
+    loading,
+    octane,
+    setOctane,
+    applyLocationSelection,
+  } = usePumpsData();
+
+  const hasData = sortedStations.length > 0;
+
   return (
-    <div className="placeholder">
-      <p className="placeholder-eyebrow">Atlas</p>
-      <h1 className="placeholder-title">Map view is coming soon</h1>
-      <p className="placeholder-body">
-        An interactive map of nearby premium pumps lands in a future update.
-        For now, the Pumps tab lists every station with live prices and the
-        net-savings math.
-      </p>
+    <div className="atlas-page">
+      <div className="atlas-toolbar">
+        <AddressAutocomplete
+          placeholder="search city, zip, or address"
+          onSelect={(s) =>
+            applyLocationSelection({
+              label: s.label,
+              latitude: s.latitude,
+              longitude: s.longitude,
+            })
+          }
+        />
+        <div className="atlas-octane-bar" role="tablist" aria-label="Octane">
+          {OCTANE_TABS.map((t) => (
+            <button
+              key={String(t.key)}
+              type="button"
+              role="tab"
+              aria-selected={octane === t.key}
+              className={
+                octane === t.key ? 'atlas-octane atlas-octane--on' : 'atlas-octane'
+              }
+              onClick={() => setOctane(t.key)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="atlas-map-wrap">
+        <MapView
+          stations={sortedStations}
+          cheapestId={cheapestId}
+          center={coords}
+          theme={themeId === 'ferrari' ? 'dark' : 'light'}
+          onStationClick={(id) => {
+            const seed = sortedStations.find((s) => s.id === id);
+            navigate(`/station/${id}`, seed ? { state: { seed } } : undefined);
+          }}
+        />
+        {!loading && !hasData ? (
+          <div className="atlas-empty" role="status">
+            <p className="atlas-empty-title">No premium stations near you yet</p>
+            <p className="atlas-empty-body">
+              Search a city above, or check the Pumps tab.
+            </p>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
