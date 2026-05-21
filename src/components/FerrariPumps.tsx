@@ -6,8 +6,10 @@
 // the cinematic fluid type is clamp(), the 8px ladder is CSS custom
 // properties — no useWindowDimensions column math, no JS clamp.
 
-import { MapPin, Navigation, Search } from 'lucide-react';
+import { MapPin, Navigation } from 'lucide-react';
 import { Link } from 'react-router-dom';
+
+import { AddressAutocomplete } from './AddressAutocomplete';
 
 import { formatSavingsRange } from '@core/decision-math';
 import { formatDistance } from '@core/geo';
@@ -18,30 +20,6 @@ import type { StationWithPrice } from '@core/types';
 
 import './FerrariPumps.css';
 
-// Sample stations shown before live data lands (GPS denied, nothing in
-// range) so the cinema cards are visible. Placeholders only.
-type SampleStation = {
-  rank: string;
-  badge: 'cheapest' | 'closest' | null;
-  brand: string;
-  addr: string;
-  mi: string;
-  age: string;
-  stale: boolean;
-  dollars: string;
-  cents: string;
-  octane: string;
-  savings: { verb: 'SAVE' | 'COSTS'; amount: string } | null;
-};
-
-const SAMPLE_STATIONS: SampleStation[] = [
-  { rank: '01', badge: 'cheapest', brand: 'Sunoco', addr: '125 Hoosick St, Troy, NY', mi: '2.0 MI', age: '4H AGO', stale: false, dollars: '5', cents: '30', octane: '93', savings: { verb: 'SAVE', amount: '$1.27 – $1.93 / fill-up' } },
-  { rank: '02', badge: null, brand: "Stewart's Shops", addr: '110 Hoosick St, Troy, NY', mi: '1.4 MI', age: '11H AGO', stale: false, dollars: '5', cents: '56', octane: '91', savings: { verb: 'SAVE', amount: '$0.80 – $1.20 / fill-up' } },
-  { rank: '03', badge: 'closest', brand: "Stewart's Shops", addr: '8 Vandenburgh Ave, Troy, NY', mi: '0.5 MI', age: '3D AGO', stale: false, dollars: '5', cents: '66', octane: '91', savings: null },
-  { rank: '04', badge: null, brand: 'Speedway', addr: '175 Hoosick St, Troy, NY', mi: '2.1 MI', age: '3D OLD · STALE', stale: true, dollars: '5', cents: '40', octane: '93', savings: { verb: 'SAVE', amount: '$0.94 – $1.42 / fill-up' } },
-  { rank: '05', badge: null, brand: 'Gulf', addr: '95 Hill St, Troy, NY', mi: '1.8 MI', age: '18H AGO', stale: false, dollars: '5', cents: '40', octane: '93', savings: { verb: 'COSTS', amount: '$0.21 – $0.31 extra' } },
-  { rank: '06', badge: null, brand: 'Cumberland Farms', addr: '625 Pawling Ave, Troy, NY', mi: '3.4 MI', age: '1D AGO', stale: false, dollars: '5', cents: '50', octane: '93', savings: { verb: 'SAVE', amount: '$0.49 – $0.74 / fill-up' } },
-];
 
 function radiusMiLabel(m: number): string {
   if (m === 1609) return '1';
@@ -83,12 +61,9 @@ export function FerrariPumps({ data }: { data: PumpsData }) {
     setSort,
     usingCurrentLocation,
     currentLocationLabel,
-    searchInput,
-    setSearchInput,
     searchLabel,
-    searching,
     applyCurrentLocation,
-    submitSearch,
+    applyLocationSelection,
   } = data;
 
   // Telemetry — three cinema gauges
@@ -109,52 +84,37 @@ export function FerrariPumps({ data }: { data: PumpsData }) {
 
   const hasData = sortedStations.length > 0;
 
-  const cards: CardData[] = hasData
-    ? sortedStations.map((item, index) => {
-        const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
-        const positive = item.savings ? item.savings.centralDollars > 0 : false;
-        const stale = staleLabel(item.observed_at);
-        return {
-          key: item.id,
-          rank: (index + 1).toString().padStart(2, '0'),
-          badge:
-            item.id === cheapestId ? 'cheapest' : item.id === closestId ? 'closest' : null,
-          brand: item.brand ?? item.name,
-          addr: item.address,
-          metaMi: formatDistance(item.distance_meters),
-          metaAge: stale,
-          stale: !!stale,
-          price:
-            item.price_cents !== null
-              ? {
-                  d: String(Math.floor(item.price_cents / 100)),
-                  c: (item.price_cents % 100).toString().padStart(2, '0'),
-                }
-              : null,
-          octane: item.octane != null ? String(item.octane) : '—',
-          savings: savingsText
-            ? {
-                verb: positive ? 'SAVE' : 'COSTS',
-                amount: savingsText.replace('Save ', '').replace('Costs ', ''),
-              }
-            : null,
-          station: item,
-        };
-      })
-    : SAMPLE_STATIONS.map((s) => ({
-        key: s.rank,
-        rank: s.rank,
-        badge: s.badge,
-        brand: s.brand,
-        addr: s.addr,
-        metaMi: s.mi,
-        metaAge: s.age,
-        stale: s.stale,
-        price: { d: s.dollars, c: s.cents },
-        octane: s.octane,
-        savings: s.savings,
-        station: null,
-      }));
+  const cards: CardData[] = sortedStations.map((item, index) => {
+    const savingsText = item.savings ? formatSavingsRange(item.savings) : null;
+    const positive = item.savings ? item.savings.centralDollars > 0 : false;
+    const stale = staleLabel(item.observed_at);
+    return {
+      key: item.id,
+      rank: (index + 1).toString().padStart(2, '0'),
+      badge:
+        item.id === cheapestId ? 'cheapest' : item.id === closestId ? 'closest' : null,
+      brand: item.brand ?? item.name,
+      addr: item.address,
+      metaMi: formatDistance(item.distance_meters),
+      metaAge: stale,
+      stale: !!stale,
+      price:
+        item.price_cents !== null
+          ? {
+              d: String(Math.floor(item.price_cents / 100)),
+              c: (item.price_cents % 100).toString().padStart(2, '0'),
+            }
+          : null,
+      octane: item.octane != null ? String(item.octane) : '—',
+      savings: savingsText
+        ? {
+            verb: positive ? 'SAVE' : 'COSTS',
+            amount: savingsText.replace('Save ', '').replace('Costs ', ''),
+          }
+        : null,
+      station: item,
+    };
+  });
 
   return (
     <div className="fp-page">
@@ -218,25 +178,18 @@ export function FerrariPumps({ data }: { data: PumpsData }) {
           {!usingCurrentLocation ? <span className="fp-gps-pill">Use GPS</span> : null}
         </button>
 
-        <form
-          className="fp-search"
-          onSubmit={(e) => {
-            e.preventDefault();
-            submitSearch();
-          }}
-        >
-          <Search size={14} className="fp-search-icon" />
-          <input
-            className="fp-search-input"
-            type="search"
+        <div className="fp-search">
+          <AddressAutocomplete
             placeholder="search city, zip, or address"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            disabled={searching}
-            autoCapitalize="none"
+            onSelect={(s) =>
+              applyLocationSelection({
+                label: s.label,
+                latitude: s.latitude,
+                longitude: s.longitude,
+              })
+            }
           />
-          {searching ? <span className="fp-spinner" aria-label="Searching" /> : null}
-        </form>
+        </div>
 
         <div className="fp-section-head">
           <h2 className="fp-section-title">Premium pumps near you</h2>
@@ -329,13 +282,16 @@ export function FerrariPumps({ data }: { data: PumpsData }) {
         ) : null}
 
         {!loading && !error && !hasData ? (
-          <p className="fp-empty">
-            {stations.length === 0
-              ? `No live stations within ${radiusMiLabel(radius)} mi yet — widen the radius or share your location.`
-              : `Stations are here, but no prices for ${
-                  octane === 'premium' ? 'any premium octane' : `${octane} octane`
-                } yet.`}
-          </p>
+          <div className="fp-empty">
+            <p className="fp-empty-title">No premium stations near you yet</p>
+            <p className="fp-empty-body">
+              {stations.length === 0
+                ? `We don't have pump data for this spot yet. Search a city or ZIP above, or widen the radius.`
+                : `Stations are here, but no live prices for ${
+                    octane === 'premium' ? 'any premium octane' : `${octane} octane`
+                  } yet.`}
+            </p>
+          </div>
         ) : null}
 
         {hasData && hiddenUnpriced > 0 ? (

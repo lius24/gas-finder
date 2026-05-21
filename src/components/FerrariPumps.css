@@ -232,31 +232,7 @@
 }
 
 .fp-search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 12px;
-  background: #1f1f1f;
-  border: 1px solid var(--hairline);
   margin-bottom: var(--s4);
-}
-
-.fp-search-icon {
-  color: var(--muted);
-  flex-shrink: 0;
-}
-
-.fp-search-input {
-  flex: 1;
-  background: transparent;
-  border: none;
-  outline: none;
-  font-size: 14px;
-  color: #fff;
-}
-
-.fp-search-input::placeholder {
-  color: var(--muted);
 }
 
 .fp-section-head {
@@ -628,13 +604,32 @@ a.fp-card:hover {
 }
 
 /* -- Empty / loading / error / notes ------------------------------------ */
-.fp-empty,
 .fp-hidden-note {
   font-size: 13px;
   color: var(--body);
   text-align: center;
   font-style: italic;
   margin-top: var(--s5);
+}
+
+.fp-empty {
+  text-align: center;
+  margin-top: var(--s5);
+}
+
+.fp-empty-title {
+  margin: 0 0 8px;
+  font-family: 'Outfit', sans-serif;
+  font-size: 22px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.fp-empty-body {
+  margin: 0 auto;
+  max-width: 420px;
+  font-size: 14px;
+  color: var(--body);
 }
 
 .fp-error {
