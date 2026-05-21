@@ -3,6 +3,10 @@
   align-items: center;
   gap: var(--s2);
   height: 64px;
+  /* The nav is a flex item in the app-shell column. Without this it gets
+   * compressed on tall/scrolling pages (the flex-shrink + min-height:auto
+   * interaction crushed it to ~26px on Pumps/Garage). */
+  flex-shrink: 0;
   padding: 0 var(--s3);
   background: var(--bg);
   border-bottom: 1px solid var(--paper-edge);

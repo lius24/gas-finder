@@ -241,6 +241,15 @@ export function Garage() {
   const email = session?.user?.email ?? null;
   const avatarInitial = (email?.[0] ?? 'G').toUpperCase();
 
+  // Google sign-in supplies a profile photo in user_metadata; use it when
+  // present, fall back to the initial circle if missing or it fails to load.
+  const meta = session?.user?.user_metadata as
+    | { avatar_url?: string; picture?: string }
+    | undefined;
+  const photoUrl = meta?.avatar_url ?? meta?.picture ?? null;
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const showPhoto = !!photoUrl && !photoFailed;
+
   const handleSignOut = async () => {
     await signOut();
   };
@@ -255,7 +264,17 @@ export function Garage() {
         {/* Profile hero */}
         <div className="gr-profile-card">
           <div className="gr-avatar">
-            <span className="gr-avatar-text">{avatarInitial}</span>
+            {showPhoto ? (
+              <img
+                className="gr-avatar-img"
+                src={photoUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+                onError={() => setPhotoFailed(true)}
+              />
+            ) : (
+              <span className="gr-avatar-text">{avatarInitial}</span>
+            )}
           </div>
           <div className="gr-profile-text">
             <span className="gr-profile-label">
