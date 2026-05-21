@@ -2,8 +2,8 @@
 # Builds a Protomaps .pmtiles basemap clipped to the NY Capital District
 # (Troy / Albany / Schenectady) — the area all gas-finder testers are in.
 #
-# Requires the `pmtiles` CLI (go-pmtiles):
-#   brew install protomaps/tap/pmtiles
+# Requires the `pmtiles` CLI:
+#   brew install pmtiles
 #
 # Output: capital-district.pmtiles — upload to the Supabase `basemap` bucket.
 set -euo pipefail
