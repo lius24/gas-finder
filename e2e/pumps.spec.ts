@@ -56,3 +56,10 @@ test('city search shows an autocomplete dropdown', async ({ page }) => {
   // listbox appears (results or a message — either proves the component wired).
   await expect(page.getByRole('listbox')).toBeVisible({ timeout: 10_000 });
 });
+
+test('atlas tab renders the map', async ({ page }) => {
+  await page.goto('/atlas');
+  // MapLibre renders into a canvas inside the map container.
+  await expect(page.locator('.atlas-map canvas')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByPlaceholder('search city, zip, or address')).toBeVisible();
+});
