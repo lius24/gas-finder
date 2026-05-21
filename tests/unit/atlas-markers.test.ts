@@ -43,8 +43,8 @@ describe('stationMarkers', () => {
     expect(out.find((m) => m.id === 'a')?.variant).toBe('priced');
   });
 
-  it('marks a station with no price as unpriced with a dot label', () => {
+  it('excludes a station with price_cents: null', () => {
     const out = stationMarkers([station({ id: 'a', price_cents: null })], null);
-    expect(out[0]).toMatchObject({ variant: 'unpriced', label: '·' });
+    expect(out).toHaveLength(0);
   });
 });

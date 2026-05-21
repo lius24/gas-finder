@@ -10,13 +10,21 @@ import type { Coords } from '@core/adapters/geolocation';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import './MapView.css';
 
-const BASEMAP_URL = import.meta.env.EXPO_PUBLIC_BASEMAP_URL as string;
+const BASEMAP_URL = import.meta.env.EXPO_PUBLIC_BASEMAP_URL;
+if (!BASEMAP_URL) throw new Error('EXPO_PUBLIC_BASEMAP_URL is not set');
 
 // Register the pmtiles:// protocol once for the whole app.
+// Guard against Vite HMR double-registration on hot-reload.
 const protocol = new Protocol();
-// pmtiles v4 tile is a V3OrV4Protocol — cast to satisfy maplibre-gl v5's
-// AddProtocolAction (same runtime behavior, slightly different type shape).
-maplibregl.addProtocol('pmtiles', protocol.tile as Parameters<typeof maplibregl.addProtocol>[1]);
+let _pmtilesRegistered = false;
+if (!_pmtilesRegistered) {
+  // pmtiles v4 tile is a V3OrV4Protocol — cast to satisfy maplibre-gl v5's
+  // AddProtocolAction (same runtime behavior, slightly different type shape).
+  maplibregl.addProtocol('pmtiles', protocol.tile as Parameters<typeof maplibregl.addProtocol>[1]);
+  _pmtilesRegistered = true;
+}
+
+const DEFAULT_ZOOM = 12;
 
 // @protomaps/basemaps v5: layers(source, flavorObject, { lang }).
 function buildStyle(theme: 'dark' | 'light'): maplibregl.StyleSpecification {
@@ -61,7 +69,7 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
       container: containerRef.current,
       style: buildStyle(theme),
       center: center ? [center.longitude, center.latitude] : [-73.69, 42.73],
-      zoom: 12,
+      zoom: DEFAULT_ZOOM,
     });
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right');
     mapRef.current = map;
@@ -76,13 +84,20 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
   // Recenter when the location changes.
   useEffect(() => {
     if (mapRef.current && center) {
-      mapRef.current.flyTo({ center: [center.longitude, center.latitude], zoom: 12 });
+      mapRef.current.flyTo({ center: [center.longitude, center.latitude], zoom: DEFAULT_ZOOM });
     }
   }, [center]);
 
   // Swap the basemap style when the theme changes.
+  // Re-attach custom DOM markers once the new style has loaded — setStyle can
+  // detach them, and the marker-sync effect does not re-run on a theme change.
   useEffect(() => {
-    mapRef.current?.setStyle(buildStyle(theme));
+    const map = mapRef.current;
+    if (!map) return;
+    map.setStyle(buildStyle(theme));
+    map.once('styledata', () => {
+      markersRef.current.forEach((m) => m.addTo(map));
+    });
   }, [theme]);
 
   // Sync markers to the station list.

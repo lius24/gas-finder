@@ -25,8 +25,3 @@
   color: #ffffff;
 }
 
-.atlas-marker--unpriced {
-  font-size: 14px;
-  padding: 2px 6px;
-  color: var(--ink-faint);
-}

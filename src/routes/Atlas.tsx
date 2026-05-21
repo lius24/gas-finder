@@ -9,6 +9,7 @@ import { MapView } from '../components/MapView';
 
 import './Atlas.css';
 
+// Intentionally mirrors the 87/89/91+ subset shown in the Pumps tab's octane selector.
 const OCTANE_TABS: { key: OctaneSelection; label: string }[] = [
   { key: 87, label: '87' },
   { key: 89, label: '89' },
