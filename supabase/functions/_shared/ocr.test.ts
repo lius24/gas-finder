@@ -19,12 +19,22 @@ Deno.test('extracts the JSON array even with surrounding prose', () => {
   );
 });
 
-Deno.test('drops unknown octanes and out-of-range prices', () => {
+Deno.test('drops unknown octanes and drops valid octanes whose price is out of range', () => {
   assertEquals(
     parseClaudeResponse(
       '[{"octane":88,"price_cents":300},{"octane":87,"price_cents":50},{"octane":91,"price_cents":399}]',
     ),
     [{ octane: 91, price_cents: 399 }],
+  );
+});
+
+Deno.test('accepts boundary octanes 86 and 94', () => {
+  assertEquals(
+    parseClaudeResponse('[{"octane":86,"price_cents":329},{"octane":94,"price_cents":459}]'),
+    [
+      { octane: 86, price_cents: 329 },
+      { octane: 94, price_cents: 459 },
+    ],
   );
 });
 

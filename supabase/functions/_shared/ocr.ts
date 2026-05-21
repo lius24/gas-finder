@@ -12,7 +12,10 @@ export type ParsedPrice = { octane: Octane; price_cents: number };
 const OCTANE_VALUES: readonly Octane[] = [86, 87, 89, 91, 93, 94];
 const MIN_PRICE_CENTS = 100;
 const MAX_PRICE_CENTS = 1500;
-const SUPPORTED_MEDIA = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+const SUPPORTED_MEDIA = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'] as const;
+
+// Cheapest vision-capable model.
+const OCR_MODEL = 'claude-haiku-4-5-20251001';
 
 const PROMPT =
   'This image is a photo of a gas station price sign. Return a JSON array of ' +
@@ -24,7 +27,7 @@ const PROMPT =
 
 /** Extract and validate octane/price pairs from Claude's text response. */
 export function parseClaudeResponse(text: string): ParsedPrice[] {
-  const match = text.match(/\[[\s\S]*\]/);
+  const match = text.match(/\[[\s\S]*?\]/);
   if (!match) return [];
 
   let raw: unknown;
@@ -62,18 +65,22 @@ export async function ocrImage(
   const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (!apiKey) return [];
 
-  const media = SUPPORTED_MEDIA.includes(mediaType) ? mediaType : 'image/jpeg';
+  const media = SUPPORTED_MEDIA.includes(mediaType as typeof SUPPORTED_MEDIA[number]) ? mediaType : 'image/jpeg';
+
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 15_000);
 
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
+      signal: controller.signal,
       headers: {
         'x-api-key': apiKey,
         'anthropic-version': '2023-06-01',
         'content-type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+        model: OCR_MODEL,
         max_tokens: 256,
         messages: [
           {
@@ -99,5 +106,7 @@ export async function ocrImage(
     return typeof text === 'string' ? parseClaudeResponse(text) : [];
   } catch {
     return [];
+  } finally {
+    clearTimeout(timer);
   }
 }
