@@ -65,6 +65,8 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
   // calls setStyle on a real change — not on mount (the init effect already
   // applied it) and not on React StrictMode's double-invoke.
   const appliedTheme = useRef(theme);
+  // The "your location" dot, pinned at the active center.
+  const userMarkerRef = useRef<maplibregl.Marker | null>(null);
 
   // Initialize the map once.
   useEffect(() => {
@@ -85,10 +87,21 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Recenter when the location changes.
+  // Recenter on the active location and pin it with a "your location" dot.
   useEffect(() => {
-    if (mapRef.current && center) {
-      mapRef.current.flyTo({ center: [center.longitude, center.latitude], zoom: DEFAULT_ZOOM });
+    const map = mapRef.current;
+    if (!map || !center) return;
+    const lngLat: [number, number] = [center.longitude, center.latitude];
+    map.flyTo({ center: lngLat, zoom: DEFAULT_ZOOM });
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLngLat(lngLat);
+    } else {
+      const el = document.createElement('div');
+      el.className = 'atlas-userdot';
+      el.setAttribute('aria-label', 'Your location');
+      userMarkerRef.current = new maplibregl.Marker({ element: el })
+        .setLngLat(lngLat)
+        .addTo(map);
     }
   }, [center]);
 
@@ -104,6 +117,7 @@ export function MapView({ stations, cheapestId, center, theme, onStationClick }:
     map.setStyle(buildStyle(theme));
     map.once('styledata', () => {
       markersRef.current.forEach((m) => m.addTo(map));
+      userMarkerRef.current?.addTo(map);
     });
   }, [theme]);
 
