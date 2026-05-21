@@ -2,32 +2,41 @@
 
 ## Project
 
-Expo Router + Supabase app for finding the cheapest higher-octane gas with authoritative pump-feed prices and net-savings decision math. Web-first PWA, native deferred behind a usage trigger.
+Web PWA for finding the cheapest higher-octane gas with authoritative
+pump-feed prices and net-savings decision math. Native is deferred behind a
+usage trigger; this repo is the web app only.
 
-**Design doc (source of truth for current direction):** `~/.gstack/projects/gas-finder/vnerald-main-design-20260518-080854.md`
-
+**Product design doc (direction — wedge, validation gate):** `~/.gstack/projects/gas-finder/vnerald-main-design-20260518-080854.md`
+**Re-platform design doc (RN-Web → Vite architecture):** `~/.gstack/projects/gas-finder/vnerald-main-design-20260520-072743.md`
 **Deferred work:** `TODOS.md`
 
 ## Stack
 
-- Frontend: Expo Router 6, React Native 0.81, React 19.1, react-native-web 0.21
-- Backend: Supabase (Postgres + Edge Functions + Auth + Cron via `cron.schedule`)
-- Data ingest: Google Places `fuelOptions` (authoritative pump-feed prices, NOT user-reported)
-- Design system: Desert Refueling Station — Fraunces / Newsreader / Major Mono Display / JetBrains Mono ExtraBold on cream + oxblood + amber + ink. Tokens in `lib/theme.ts`. Never default-Vercel-shadcn-ify.
+- Frontend: Vite + React 19 + React Router 7, TypeScript (strict). Migrated
+  off Expo Router / React Native Web in 2026-05 — see the re-platform doc.
+- Backend: Supabase (Postgres + Edge Functions + Auth + Cron via `cron.schedule`).
+- Data ingest: Google Places `fuelOptions` (authoritative pump-feed prices, NOT user-reported).
+- Icons: `lucide-react`. Fonts: `@fontsource/outfit` (Ferrari) + `@fontsource/archivo` (Airtable).
+
+## Repo layout
+
+- `core/` — RN-free shared logic: types, decision-math, staleness, geo, the
+  Supabase client, auth context, the `usePumpsData` hook, theme registry.
+  Zero React Native imports. Pure modules are unit-tested here.
+- `core/adapters/` — browser-API wrappers that replaced expo-* packages:
+  `storage.ts` (guarded localStorage, in-memory fallback), `geolocation.ts`
+  (browser geolocation + 8s timeout race), `geocoding.ts` (Nominatim, keyless).
+- `src/` — the Vite app: `main.tsx` entry, `App.tsx` router, `routes/`
+  (one component per screen), `components/` (FerrariPumps, AirtablePumps,
+  NavBar), `styles/` (global.css + themes.css).
+- `supabase/` — backend (Edge Functions, migrations). Untouched by the web app.
 
 ## Testing
 
-- Framework: Vitest (`npm test`)
-- v1 scope: `lib/decision-math.test.ts` + `lib/staleness.test.ts` only
-- E2E (Playwright) deferred to v1.0.1 — see TODOS.md
-
-## Web-vs-native guard pattern
-
-Every native-only wrapper function gets `if (Platform.OS === 'web') return` as its first line. The function declares its own platform-awareness; call sites stay clean. Pattern established 2026-05-18 via `/plan-eng-review` decision ER2.
-
-Applies to:
-- `lib/notifications.ts:registerForPushAlerts` — web returns early (Web Push is v1.1+)
-- Future haptics / secure-store / image-picker wrappers — same pattern
+- `npm test` — Vitest: adapter unit tests, the `usePumpsData` hook test,
+  decision-math + staleness pure-function suites.
+- `npm run test:e2e` — Playwright smoke test (`e2e/`) for the Pumps happy path.
+- `npm run typecheck` / `npm run lint` — `tsc --noEmit` and ESLint flat config.
 
 ## Skill routing
 
@@ -58,31 +67,49 @@ After adding a new override, redeploy via `supabase functions deploy refresh-pri
 
 ## Project-specific conventions
 
-- **Tab labels:** route filenames in `app/(tabs)/` are technical (`index`, `map`, `upload`, `settings`); user-facing labels are **Pumps**, **Atlas**, **Report**, **Garage**. When the user says "the garage tab," they mean Settings.
-- **Octane type is 6-valued:** `86 | 87 | 89 | 91 | 93 | 94`. PRIMARY = `[87, 89, 91, 93]` (always-shown chips). SECONDARY = `[86, 94]` (revealed via toggle). Iterate `ALL_OCTANES` rather than hardcoding `[87, 89, 91, 93]`.
-- **Stale-price handling:** prices >24h are muted with `stale` chip; prices >7d are hidden (treated as null). Logic lives in `lib/staleness.ts`. Established 2026-05-18 via `/plan-eng-review` decision ER6.
-- **Decision math:** pure function at `lib/decision-math.ts:annotateWithSavings(stations, octane, opts?)`. Parent components call it before passing stations to `StationCard`. Card never computes baseline itself. Established 2026-05-18 via `/plan-eng-review` decision ER4.
+- **Routes / tab labels:** route components live in `src/routes/`; the bottom
+  user-facing labels are **Pumps** (`/`), **Atlas** (`/atlas`), **Report**
+  (`/report`), **Garage** (`/garage`). When the user says "the garage tab,"
+  they mean settings.
+- **Octane type is 6-valued:** `86 | 87 | 89 | 91 | 93 | 94`. PRIMARY = `[87, 89, 91, 93]`. SECONDARY = `[86, 94]`. The Pumps views expose 87 / 89 / "91+ Any premium". Iterate `ALL_OCTANES` rather than hardcoding.
+- **Stale-price handling:** prices >24h are muted with a `stale` chip; prices >7d are hidden (treated as null). Logic in `core/staleness.ts`.
+- **Decision math:** pure function `core/decision-math.ts:annotateWithSavings(stations, octane, opts?)`. `usePumpsData` calls it; views never compute the baseline themselves.
 
-## Theme system (Desert / Ferrari / Airtable)
+## Theme system (Ferrari / Airtable)
 
-Three ship in v1 — picker lives in the Garage tab under APPEARANCE. Tokens flow through React context (`useTheme()` from `lib/theme-provider.tsx`), persisted in AsyncStorage. Theme definitions in `lib/theme.ts`.
+Two themes ship on web — picker in the Garage tab under APPEARANCE. (Desert
+was dropped from web in the re-platform; it returns with a future native app.)
+`ThemeProvider` (`core/theme-provider.tsx`) tracks the active id, persists it
+to localStorage, and mirrors it onto `<html data-theme>`.
 
-**Authoring rules for any new component:**
-- Import `useTheme` (and `type Theme`) from `@/lib/theme-provider` and `@/lib/theme` respectively. Never import `colors`/`fonts`/etc. as top-level constants — those still exist for backward-compat but should not be used in new code.
-- Move `StyleSheet.create({...})` into a `makeStyles(theme: Theme)` function. Call it from inside the component via `const styles = useMemo(() => makeStyles(theme), [theme])`.
-- Use **semantic slots** for the inverse-contrast surfaces — pump LCD panel, sign-in button, active octane chip, "GET DIRECTIONS" CTA, formula card:
-  - `displaySurface` (always dark) — the background
-  - `displayInk` (always bright accent) — the foreground
-  - `onRust` — text/icons sitting on a `rust` (or `danger`) background
-  - `onAmber` — text/icons sitting on an `amber` background
-  These prevent "white on white" regressions when Ferrari binds `colors.ink` to white.
+**Authoring rules:**
+- Design tokens are **CSS custom properties** keyed off `[data-theme]` in
+  `src/styles/themes.css` (color / type / the 8px spacing ladder `--s1`..`--s8`).
+  Components reference `var(--token)` — never hardcode theme colors.
+- The Pumps tab is a **theme dispatcher**: Ferrari and Airtable are two
+  structurally different real-CSS components (`FerrariPumps`, `AirtablePumps`)
+  that share the one `usePumpsData()` hook. The design-truth source for each is
+  `public/preview/ferrari.html` / `airtable.html` — port the CSS *mechanism*,
+  not a frozen-width snapshot.
+- Per-component CSS lives next to the component (`FerrariPumps.css`, etc.),
+  imported by it. Prefix classes per component to avoid collisions.
 
-## Backend not touched in v1
+## Backend not touched by the web app
 
-The Supabase backend (Edge Functions, schema, RPCs, cron jobs, CRON_SECRET gating) is already deployed and dogfooded on real Troy NY prices. **v1 PWA work is frontend-only.** Do not modify the backend unless explicitly asked.
+The Supabase backend (Edge Functions, schema, RPCs, cron jobs, CRON_SECRET gating) is deployed and dogfooded on real Troy NY prices. Do not modify the backend unless explicitly asked.
 
 ## Deploy
 
-- Web: Vercel auto-deploys on `main` push. The build command is `npm run export:web` (configured in `vercel.json`), which runs `expo export --platform web` then `node scripts/inject-pwa-tags.mjs` to patch the SPA shell with PWA manifest + iOS Add-to-Home-Screen meta tags. The injector exists because `app/+html.tsx` is silently skipped when `expo.web.output` is `"single"` — patching the emitted shell is cheaper than rewiring to `"static"` per-route HTML.
-- Static assets: anything under `public/` is copied verbatim to `dist/` by `expo export`. That's where `manifest.json`, `icon-192.png`, `icon-512.png`, and `apple-touch-icon.png` live. PWA icons were generated from `assets/images/icon.png` (1024×1024) via `sips` — re-run `sips -s format png -z N N assets/images/icon.png --out public/icon-N.png` if the source icon changes.
-- Native (deferred): EAS Build + TestFlight + Apple Developer. Re-evaluate after validation gate (≥10 non-household WAU × 4 weeks).
+- Web: Vercel auto-deploys on `main` push. Build command `npm run build`
+  (`tsc --noEmit && vite build`), output `dist/`, `framework: "vite"` in
+  `vercel.json` with an SPA fallback rewrite. `vite-plugin-pwa` generates the
+  manifest + service worker (network-first for the station/price API so stale
+  prices are never served from cache).
+- Static assets: anything under `public/` is copied verbatim to `dist/` —
+  `favicon.png`, `apple-touch-icon.png`, `icon-192.png`, `icon-512.png`, and
+  the `preview/` design mockups. iOS Add-to-Home-Screen meta tags are in
+  `index.html`.
+- Env: `EXPO_PUBLIC_SUPABASE_URL` / `EXPO_PUBLIC_SUPABASE_ANON_KEY` (the
+  `EXPO_PUBLIC_` prefix is kept so the Vercel project's existing env vars work
+  unchanged — Vite's `envPrefix` is widened to accept it).
+- Native (deferred): re-evaluate after the validation gate (≥10 non-household WAU × 4 weeks).

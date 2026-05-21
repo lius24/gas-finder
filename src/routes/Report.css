@@ -1,0 +1,264 @@
+/* Report screen — "Citizen Contributor" price reporting flow.
+ *
+ * All colors via CSS custom properties from themes.css so the
+ * screen is theme-aware (Desert / Ferrari / Airtable) at zero cost.
+ * Class prefix: rp-
+ */
+
+.rp-screen {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: var(--s4) var(--s3) var(--s7);
+  display: flex;
+  flex-direction: column;
+  gap: 0; /* children manage their own margins */
+}
+
+/* -- Header --------------------------------------------------------------- */
+
+.rp-brand-rule {
+  width: 36px;
+  height: 2px;
+  background: var(--rust);
+  margin-bottom: 10px;
+  flex-shrink: 0;
+}
+
+.rp-kicker {
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--rust);
+  margin: 0 0 4px;
+}
+
+.rp-title {
+  font-family: var(--font-display), sans-serif;
+  font-size: 32px;
+  font-weight: 600;
+  line-height: 1.1;
+  color: var(--ink);
+  margin: 0;
+}
+
+.rp-subtitle {
+  font-family: var(--font-body), sans-serif;
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 6px 0 var(--s3);
+}
+
+/* -- Station context pill ------------------------------------------------ */
+
+.rp-station-pill {
+  align-self: flex-start;
+  display: inline-block;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--rust);
+  margin-bottom: 12px;
+}
+
+.rp-station-pill-text {
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--on-rust);
+}
+
+/* -- Photo preview ------------------------------------------------------- */
+
+.rp-preview {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  display: block;
+  margin-bottom: var(--s2);
+}
+
+/* -- Hidden file input --------------------------------------------------- */
+
+.rp-file-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* -- Uploading spinner --------------------------------------------------- */
+
+.rp-spinner-wrap {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s2);
+}
+
+.rp-spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--paper-edge);
+  border-top-color: var(--rust);
+  border-radius: 50%;
+  animation: rp-spin 700ms linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes rp-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.rp-spinner-label {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* -- Parsed prices block ------------------------------------------------- */
+
+.rp-parsed-block {
+  margin-top: var(--s2);
+  padding: var(--s3);
+  border-radius: var(--radius-lg);
+  background: var(--display-surface);
+}
+
+.rp-parsed-header {
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--display-ink);
+  margin: 0 0 10px;
+}
+
+.rp-parsed-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.rp-parsed-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(212, 136, 44, 0.15);
+}
+
+.rp-parsed-row:last-child {
+  border-bottom: none;
+}
+
+.rp-parsed-octane {
+  font-family: var(--font-body), sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--on-rust);
+}
+
+.rp-parsed-price {
+  font-family: var(--font-body), sans-serif;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--display-ink);
+}
+
+.rp-muted {
+  font-family: var(--font-body), sans-serif;
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-faint);
+  margin: 0;
+}
+
+/* -- Error / message block ----------------------------------------------- */
+
+.rp-message-block {
+  margin-top: 12px;
+}
+
+.rp-error {
+  font-family: var(--font-body), sans-serif;
+  font-style: italic;
+  font-size: 14px;
+  color: var(--danger);
+  margin: 0;
+}
+
+.rp-permission-hint {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  color: var(--ink-soft);
+  margin: 6px 0 0;
+}
+
+/* -- CTA button ---------------------------------------------------------- */
+
+.rp-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--s1);
+  width: 100%;
+  margin-top: var(--s4);
+  padding: 16px;
+  border-radius: var(--radius-md);
+  background: var(--display-surface);
+  border: none;
+  cursor: pointer;
+  transition: opacity 180ms ease;
+}
+
+.rp-btn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.rp-btn:active:not(:disabled) {
+  opacity: 0.85;
+}
+
+.rp-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.rp-btn span {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--display-ink);
+}
+
+.rp-btn-icon {
+  color: var(--display-ink);
+  flex-shrink: 0;
+}
+
+/* -- Responsive ---------------------------------------------------------- */
+
+@media (max-width: 480px) {
+  .rp-screen {
+    padding: var(--s3) var(--s2) var(--s6);
+  }
+
+  .rp-title {
+    font-size: 26px;
+  }
+}

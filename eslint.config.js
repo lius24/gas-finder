@@ -1,10 +1,36 @@
-// https://docs.expo.dev/guides/using-eslint/
-const { defineConfig } = require('eslint/config');
-const expoConfig = require('eslint-config-expo/flat');
+import js from '@eslint/js';
+import globals from 'globals';
+import reactHooks from 'eslint-plugin-react-hooks';
+import tseslint from 'typescript-eslint';
 
-module.exports = defineConfig([
-  expoConfig,
+export default tseslint.config(
   {
-    ignores: ['dist/*'],
+    // Old Expo/RN dirs and backend code are outside the Vite build — they
+    // are removed at cutover (migration step 6/7).
+    ignores: [
+      'dist',
+      'dev-dist',
+      '.expo',
+      'app',
+      'components',
+      'hooks',
+      'scripts',
+      'supabase',
+      'assets',
+    ],
   },
-]);
+  {
+    files: ['**/*.{ts,tsx}'],
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: { ...globals.browser, ...globals.node },
+    },
+    plugins: { 'react-hooks': reactHooks },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+    },
+  },
+);

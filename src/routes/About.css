@@ -1,0 +1,217 @@
+/* About — "Why the math actually matters"
+ * Re-platform of app/about.tsx. All colours via CSS custom properties
+ * from the active theme (:root[data-theme]). Classes are prefixed ab-
+ * to prevent collisions.
+ */
+
+.ab-page {
+  background: var(--bg);
+  min-height: 100vh;
+}
+
+.ab-content {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: var(--s4) var(--s3) calc(var(--s8) * 2);
+}
+
+/* ── Kicker ──────────────────────────────────────────────────────────── */
+.ab-kicker {
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--rust);
+  margin: 0 0 var(--s1);
+}
+
+/* ── Hero title ──────────────────────────────────────────────────────── */
+.ab-title {
+  font-family: var(--font-display), serif;
+  font-size: 36px;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  margin: 0;
+}
+
+.ab-title-em {
+  font-style: italic;
+  color: var(--rust);
+}
+
+/* ── Lede ────────────────────────────────────────────────────────────── */
+.ab-lede {
+  font-family: var(--font-body), sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: var(--s2) 0 var(--s4);
+}
+
+/* ── Three-stat grid ─────────────────────────────────────────────────── */
+.ab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s2);
+  margin-bottom: var(--s4);
+}
+
+.ab-grid-cell {
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: var(--s3);
+}
+
+.ab-grid-num {
+  font-family: var(--font-display), serif;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.05;
+  letter-spacing: -0.5px;
+  color: var(--ink);
+  margin-bottom: 4px;
+}
+
+.ab-grid-num--accent {
+  color: var(--rust);
+}
+
+.ab-grid-title {
+  font-family: var(--font-body), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  color: var(--ink);
+  margin-bottom: 6px;
+}
+
+.ab-grid-body {
+  font-family: var(--font-body), sans-serif;
+  font-size: 13px;
+  line-height: 1.46;
+  color: var(--ink-soft);
+}
+
+/* ── Formula card ────────────────────────────────────────────────────── */
+.ab-formula-card {
+  background: var(--display-surface);
+  border-radius: var(--radius-lg);
+  padding: var(--s3);
+  margin-bottom: var(--s4);
+}
+
+.ab-formula-label {
+  font-family: var(--font-body), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--display-ink);
+  margin: 0 0 10px;
+}
+
+.ab-formula {
+  font-family: ui-monospace, 'JetBrains Mono', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.69;
+  color: var(--on-rust);
+  margin: 0;
+  white-space: pre;
+  overflow-x: auto;
+}
+
+/* ── Section headers ─────────────────────────────────────────────────── */
+.ab-section-header {
+  font-family: var(--font-display), serif;
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.2px;
+  color: var(--ink);
+  margin: var(--s3) 0 var(--s1);
+}
+
+/* ── Body copy ───────────────────────────────────────────────────────── */
+.ab-body {
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  line-height: 1.57;
+  color: var(--ink-soft);
+  margin: 0 0 var(--s2);
+}
+
+/* ── Worked example ──────────────────────────────────────────────────── */
+.ab-example {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  background: var(--paper);
+  border: 1px solid var(--paper-edge);
+  border-radius: var(--radius-lg);
+  padding: var(--s3);
+  margin-bottom: var(--s2);
+}
+
+.ab-example-step {
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  line-height: 1.57;
+  color: var(--ink-soft);
+  margin: 0;
+  padding-bottom: var(--s1);
+  border-bottom: 1px solid var(--paper-edge);
+}
+
+/* hairline between steps, but not after the last one */
+.ab-example-step + .ab-example-step {
+  padding-top: var(--s1);
+}
+
+.ab-example-step--last {
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  line-height: 1.57;
+  color: var(--ink-soft);
+  margin: 0;
+  padding-top: var(--s1);
+  border-bottom: none;
+}
+
+.ab-example-label {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ab-example-num {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.ab-example-net-num {
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--rust);
+}
+
+/* ── Back nav ────────────────────────────────────────────────────────── */
+.ab-back-row {
+  margin-top: var(--s4);
+}
+
+.ab-back-link {
+  font-family: var(--font-body), sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--rust);
+  text-decoration: none;
+}
+
+.ab-back-link:hover {
+  color: var(--rust-dark);
+  text-decoration: underline;
+}
