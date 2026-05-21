@@ -6,6 +6,7 @@
 import { useThemeId } from '@core/theme-provider';
 import { usePumpsData } from '@core/use-pumps-data';
 
+import { AirtablePumps } from '../components/AirtablePumps';
 import { FerrariPumps } from '../components/FerrariPumps';
 
 export function Pumps() {
@@ -13,8 +14,7 @@ export function Pumps() {
   const themeId = useThemeId();
 
   if (themeId === 'airtable') {
-    // AirtablePumps lands in migration step 4.
-    return <FerrariPumps data={data} />;
+    return <AirtablePumps data={data} />;
   }
   return <FerrariPumps data={data} />;
 }
