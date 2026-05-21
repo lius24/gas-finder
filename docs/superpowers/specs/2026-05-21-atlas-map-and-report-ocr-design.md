@@ -48,23 +48,22 @@ order.
 
 ### Hosting the basemap
 
-The `.pmtiles` file must be served from a host that supports HTTP range
-requests (PMTiles reads byte ranges, never the whole file). Supabase Storage
-supports range requests.
+PMTiles reads byte ranges from the file over HTTP, so the host must support
+HTTP range requests. Supabase Storage does.
 
-- A build script (`scripts/build-basemap.sh`) produces a `.pmtiles` extract
-  **clipped to the covered regions** via `pmtiles extract --bbox=…` against a
-  Protomaps planet build. Clipping to the active metros (Arizona + the NY
-  Capital District) keeps the file to tens of MB.
+- All testers are local to Troy NY, so the basemap is a **single small
+  extract** — no multi-region handling. A build script
+  (`scripts/build-basemap.sh`) runs `pmtiles extract --bbox=…` against a
+  Protomaps planet build with one bounding box covering the NY Capital District
+  (Troy / Albany / Schenectady). A box that tight stays small even to street
+  zoom (well under ~50 MB).
 - The file is uploaded to a public Supabase Storage bucket (`basemap`).
 - **Known constraint:** Supabase's default per-file upload limit (10 MiB) must
-  be raised in the project dashboard, and the free tier caps total storage at
-  1 GB. The clipped extract fits comfortably. If coverage later grows enough
-  that the basemap outgrows Supabase Storage, move the file to Cloudflare R2
-  (free tier, range-request capable) — a host swap, no code change beyond the
-  tile URL.
-- Regenerate and re-upload the extract when new metros are ingested. The build
-  script takes the region list as input.
+  be raised in the project dashboard to accept the extract; the free tier's
+  1 GB total storage is not a concern at this size.
+- If coverage later expands beyond the Troy area, either widen the bbox and
+  rebuild, or move the file to Cloudflare R2 (free tier, range-capable) — a
+  host swap, no code change beyond the tile URL.
 
 ### Component architecture
 
@@ -197,7 +196,8 @@ Claude returns structured data directly, so the text-pairing step is dead code.
 - **`report` rate limiting** — `report` is client-callable and now triggers a
   billable Anthropic call per submission. At validation scale (a handful of
   testers) this is immaterial; revisit with an abuse guard if usage grows.
-- **On-demand map basemap for arbitrary metros** — the basemap is a clipped
-  extract for the covered regions; worldwide coverage is not a goal.
+- **Basemap beyond Troy** — the basemap is a single extract for the NY Capital
+  District, where all testers are; wider or worldwide coverage is not a goal
+  for this plan.
 - No change to the `nearby` / `station` edge functions, the Pumps or Garage
   screens, or the decision-math.
