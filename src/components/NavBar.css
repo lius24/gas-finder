@@ -94,6 +94,14 @@
   font-family: var(--font-body), sans-serif;
   font-weight: 700;
   font-size: 14px;
+  overflow: hidden;
+}
+
+.navbar-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  object-fit: cover;
 }
 
 /* -- Ferrari: uppercase, rotated mark, racing letter-spacing -------------- */

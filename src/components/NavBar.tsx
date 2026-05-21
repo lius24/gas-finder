@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { NavLink } from 'react-router-dom';
 
 import { useAuth } from '@core/auth';
@@ -15,6 +16,16 @@ export function NavBar() {
   const { session } = useAuth();
   const email = session?.user?.email ?? null;
   const initial = (email?.[0] ?? '?').toUpperCase();
+
+  // Google sign-in puts the user's profile photo in user_metadata. Use it
+  // when present; fall back to the initial-letter circle otherwise (and if
+  // the image URL fails to load — e.g. Google rate-limits the avatar host).
+  const meta = session?.user?.user_metadata as
+    | { avatar_url?: string; picture?: string }
+    | undefined;
+  const photoUrl = meta?.avatar_url ?? meta?.picture ?? null;
+  const [photoFailed, setPhotoFailed] = useState(false);
+  const showPhoto = !!photoUrl && !photoFailed;
 
   return (
     <header className="navbar">
@@ -45,7 +56,17 @@ export function NavBar() {
             className="navbar-avatar"
             aria-label={`Signed in as ${email ?? 'your account'}`}
           >
-            {initial}
+            {showPhoto ? (
+              <img
+                className="navbar-avatar-img"
+                src={photoUrl}
+                alt=""
+                referrerPolicy="no-referrer"
+                onError={() => setPhotoFailed(true)}
+              />
+            ) : (
+              initial
+            )}
           </NavLink>
         ) : (
           <NavLink to="/sign-in" className="navbar-signin">
