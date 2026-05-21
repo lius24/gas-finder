@@ -20,6 +20,9 @@
 
 .addr-ac-input:focus {
   border-color: var(--rust);
+  /* The rust border is this input's focus affordance — suppress the global
+     :focus-visible amber ring so the two don't stack. */
+  outline: none;
 }
 
 .addr-ac-spinner {
