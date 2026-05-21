@@ -47,3 +47,12 @@ test('sign-in route shows the email form', async ({ page }) => {
   await expect(page.getByRole('heading', { name: /sign in to pump/i })).toBeVisible();
   await expect(page.getByPlaceholder(/you@example/i)).toBeVisible();
 });
+
+test('city search shows an autocomplete dropdown', async ({ page }) => {
+  await page.goto('/');
+  const search = page.getByRole('combobox');
+  await search.fill('Troy');
+  // Photon is a live external call; allow a generous window, assert the
+  // listbox appears (results or a message — either proves the component wired).
+  await expect(page.getByRole('listbox')).toBeVisible({ timeout: 10_000 });
+});
