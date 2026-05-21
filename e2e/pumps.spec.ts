@@ -10,8 +10,8 @@ test('cold visit renders the Ferrari Pumps shell', async ({ page }) => {
   await expect(
     page.getByRole('heading', { name: /worth\s+driving\s+for/i }),
   ).toBeVisible();
-  // Station cards render (sample cards when no live data).
-  await expect(page.locator('.fp-card').first()).toBeVisible();
+  // The city-search shell is always present, with or without live data.
+  await expect(page.getByRole('combobox')).toBeVisible();
 });
 
 test('octane tabs toggle selection', async ({ page }) => {
