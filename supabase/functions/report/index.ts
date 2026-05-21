@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       .download(photo_path);
     if (!dlErr && blob) {
       const bytes = new Uint8Array(await blob.arrayBuffer());
-      parsed_prices = await ocrImage(bytes);
+      parsed_prices = await ocrImage(bytes, blob.type || 'image/jpeg');
     }
   } catch (_e) {
     // OCR is best-effort. Leave parsed_prices empty and let manual review handle it.
