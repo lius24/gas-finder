@@ -7,12 +7,12 @@
  */
 
 :root[data-theme='ferrari'] {
-  --bg: #0c0c0c;
-  --paper: #161616;
-  --paper-edge: #2a2a2a;
-  --ink: #f4f4f4;
-  --ink-soft: #b8b8b8;
-  --ink-faint: #7a7a7a;
+  --bg: #181818;
+  --paper: #1f1f1f;
+  --paper-edge: #303030;
+  --ink: #ffffff;
+  --ink-soft: #c8c8c8;
+  --ink-faint: #969696;
   --rust: #da291c;
   --rust-dark: #b01e0a;
   --amber: #f6e500;

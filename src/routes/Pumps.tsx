@@ -1,18 +1,20 @@
 // Pumps tab — theme dispatcher. Ferrari and Airtable are structurally
 // different layouts (eng-review D1); each is its own real-CSS component
-// consuming the shared usePumpsData() hook. Built in migration steps 2 & 4.
+// consuming the one shared usePumpsData() hook. The hook is called once
+// here so switching theme never remounts it (station data survives).
 
-import './Placeholder.css';
+import { useThemeId } from '@core/theme-provider';
+import { usePumpsData } from '@core/use-pumps-data';
+
+import { FerrariPumps } from '../components/FerrariPumps';
 
 export function Pumps() {
-  return (
-    <div className="placeholder">
-      <p className="placeholder-eyebrow">Pumps</p>
-      <h1 className="placeholder-title">Pumps view — under construction</h1>
-      <p className="placeholder-body">
-        The Ferrari and Airtable Pumps layouts are being rebuilt on the new
-        web stack.
-      </p>
-    </div>
-  );
+  const data = usePumpsData();
+  const themeId = useThemeId();
+
+  if (themeId === 'airtable') {
+    // AirtablePumps lands in migration step 4.
+    return <FerrariPumps data={data} />;
+  }
+  return <FerrariPumps data={data} />;
 }
