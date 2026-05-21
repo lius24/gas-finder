@@ -20,10 +20,17 @@ export function AddressAutocomplete({ placeholder, initialValue, autoFocus, onSe
   const [active, setActive] = useState(-1);
   // Monotonic id so a slow earlier response can't overwrite a newer query.
   const queryId = useRef(0);
+  const debounce = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const listId = useId();
 
-  useEffect(() => {
-    const q = value.trim();
+  useEffect(() => () => clearTimeout(debounce.current), []);
+
+  // Driven by the onChange event, not a `value` effect. A programmatic value
+  // change — choosing a suggestion, or an initialValue on mount — must not
+  // trigger a search or reopen the dropdown; only real typing should.
+  const runQuery = (raw: string) => {
+    clearTimeout(debounce.current);
+    const q = raw.trim();
     if (q.length < 3) {
       setResults([]);
       setLoading(false);
@@ -33,7 +40,7 @@ export function AddressAutocomplete({ placeholder, initialValue, autoFocus, onSe
     const id = ++queryId.current;
     setLoading(true);
     setFailed(false);
-    const timer = setTimeout(() => {
+    debounce.current = setTimeout(() => {
       autocompleteAddress(q)
         .then((r) => {
           if (id !== queryId.current) return;
@@ -51,15 +58,16 @@ export function AddressAutocomplete({ placeholder, initialValue, autoFocus, onSe
           if (id === queryId.current) setLoading(false);
         });
     }, 250);
-    return () => clearTimeout(timer);
-  }, [value]);
+  };
 
   const choose = (s: AddressSuggestion) => {
+    clearTimeout(debounce.current);
     queryId.current++; // invalidate any in-flight query
     setValue(s.label);
     setResults([]);
     setOpen(false);
     setActive(-1);
+    setLoading(false);
     onSelect(s);
   };
 
@@ -92,7 +100,10 @@ export function AddressAutocomplete({ placeholder, initialValue, autoFocus, onSe
         role="combobox"
         aria-expanded={open}
         aria-controls={listId}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setValue(e.target.value);
+          runQuery(e.target.value);
+        }}
         onKeyDown={onKeyDown}
         onFocus={() => results.length > 0 && setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 120)}

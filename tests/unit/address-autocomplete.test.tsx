@@ -43,4 +43,32 @@ describe('AddressAutocomplete', () => {
     await new Promise((r) => setTimeout(r, 400));
     expect(autocompleteMock).not.toHaveBeenCalled();
   });
+
+  it('does not re-query or reopen the dropdown after a suggestion is chosen', async () => {
+    const suggestion = { id: 'a', label: 'Troy, New York', latitude: 42.7, longitude: -73.6 };
+    autocompleteMock.mockResolvedValue([suggestion]);
+    render(<AddressAutocomplete placeholder="Search" onSelect={() => {}} />);
+
+    await userEvent.type(screen.getByPlaceholderText('Search'), 'Troy');
+    await userEvent.click(await screen.findByText('Troy, New York'));
+
+    autocompleteMock.mockClear();
+    // Long enough for the old debounced query to have fired if the bug existed.
+    await new Promise((r) => setTimeout(r, 400));
+
+    expect(autocompleteMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  });
+
+  it('does not query on mount when given an initialValue', async () => {
+    render(
+      <AddressAutocomplete
+        placeholder="Search"
+        initialValue="Troy, New York"
+        onSelect={() => {}}
+      />,
+    );
+    await new Promise((r) => setTimeout(r, 400));
+    expect(autocompleteMock).not.toHaveBeenCalled();
+  });
 });
