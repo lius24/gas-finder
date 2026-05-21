@@ -66,3 +66,60 @@ export async function reverseGeocode(coords: Coords): Promise<GeoAddress | null>
     region: a.state ?? null,
   };
 }
+
+// Address autocomplete via Photon (photon.komoot.io) — a free, keyless,
+// OpenStreetMap-based geocoder built for type-ahead. Keyless keeps it
+// consistent with the no-API-key decision for the other geocoding here.
+export type AddressSuggestion = {
+  id: string;
+  label: string;
+  latitude: number;
+  longitude: number;
+};
+
+type PhotonFeature = {
+  geometry?: { coordinates?: number[] };
+  properties?: {
+    osm_id?: number;
+    osm_type?: string;
+    name?: string;
+    housenumber?: string;
+    street?: string;
+    city?: string;
+    state?: string;
+  };
+};
+
+export async function autocompleteAddress(query: string): Promise<AddressSuggestion[]> {
+  const q = query.trim();
+  if (q.length < 3) return [];
+
+  const url = `https://photon.komoot.io/api?q=${encodeURIComponent(q)}&limit=5&lang=en`;
+  const res = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  if (!res.ok) {
+    throw new Error(`Address search failed (${res.status})`);
+  }
+
+  const data = (await res.json()) as { features?: PhotonFeature[] };
+  const out: AddressSuggestion[] = [];
+  for (const f of data.features ?? []) {
+    const coords = f.geometry?.coordinates;
+    if (!coords || coords.length !== 2) continue;
+    const [lon, lat] = coords;
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) continue;
+
+    const p = f.properties ?? {};
+    const street =
+      p.housenumber && p.street ? `${p.housenumber} ${p.street}` : p.street;
+    const label = [street ?? p.name, p.city, p.state].filter(Boolean).join(', ');
+    if (!label) continue;
+
+    out.push({
+      id: `${p.osm_type ?? ''}${p.osm_id ?? ''}-${lon},${lat}`,
+      label,
+      latitude: lat,
+      longitude: lon,
+    });
+  }
+  return out;
+}
