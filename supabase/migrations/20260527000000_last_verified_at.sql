@@ -26,8 +26,13 @@ update public.prices set last_verified_at = now();
 create index prices_station_octane_verified_idx
   on public.prices (station_id, octane, last_verified_at desc);
 
--- Replace nearby_stations_with_price to surface the new column. RPC shape is
--- additive; the frontend reads last_verified_at off each row.
+-- Replace nearby_stations_with_price to surface the new column. The return
+-- type changes shape, so Postgres requires a drop-then-create — CREATE OR
+-- REPLACE FUNCTION won't accept a modified row type (SQLSTATE 42P13).
+drop function if exists public.nearby_stations_with_price(
+  double precision, double precision, smallint, double precision
+);
+
 create or replace function public.nearby_stations_with_price(
   p_lat double precision,
   p_lon double precision,
