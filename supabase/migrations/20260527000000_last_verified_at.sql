@@ -16,10 +16,12 @@
 alter table public.prices
   add column last_verified_at timestamptz not null default now();
 
--- Backfill so existing rows aren't instantly hidden by the new metric.
--- Treat `observed_at` as a lower-bound proxy until the next refresh-prices
--- run touches each row.
-update public.prices set last_verified_at = observed_at;
+-- Backfill so existing rows aren't instantly hidden on rollout. The cron
+-- has been running daily and successfully fetching these (station, octane)
+-- pairs — it just hasn't been writing new rows when Google's updateTime
+-- didn't move. So at migration time every row was effectively verified
+-- within the last cron interval. now() reflects that ground truth.
+update public.prices set last_verified_at = now();
 
 create index prices_station_octane_verified_idx
   on public.prices (station_id, octane, last_verified_at desc);
