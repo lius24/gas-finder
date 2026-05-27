@@ -16,6 +16,7 @@ function station(overrides: Partial<AnnotatedStation>): AnnotatedStation {
     price_cents: 399,
     source_kind: 'google',
     observed_at: '2026-05-21T00:00:00Z',
+    last_verified_at: '2026-05-21T00:00:00Z',
     distance_meters: 800,
     isBaseline: false,
     savings: null,
