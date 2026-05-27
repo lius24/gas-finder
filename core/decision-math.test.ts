@@ -28,6 +28,7 @@ function station(id: string, overrides: Overrides = {}): StationWithPrice {
     price_cents: 400,
     source_kind: 'google' as SourceKind,
     observed_at: fresh,
+    last_verified_at: fresh,
     distance_meters: 1000,
     ...overrides,
   };
@@ -95,26 +96,47 @@ describe('annotateWithSavings', () => {
     expect(sunoco.savings!.centralDollars).toBeCloseTo(1.27, 1);
   });
 
-  it('hides stale prices (>7d) from baseline selection', () => {
+  it('hides prices last verified >7d ago from baseline selection', () => {
     const veryStale = new Date(NOW.getTime() - 8 * 24 * 3_600_000).toISOString();
     const stations = [
-      // The closer station has a *very old* price → must NOT be the baseline.
-      station('stale-near', {
+      // The closer station hasn't been re-verified in >7d → must NOT be the baseline.
+      station('unverified-near', {
         distance_meters: 100,
         price_cents: 100,
         observed_at: veryStale,
+        last_verified_at: veryStale,
       }),
       station('fresh-far', {
         distance_meters: 5000,
         price_cents: 400,
         observed_at: fresh,
+        last_verified_at: fresh,
       }),
     ];
     const out = annotateWithSavings(stations, 91);
     expect(out.find((s) => s.id === 'fresh-far')!.isBaseline).toBe(true);
-    expect(out.find((s) => s.id === 'stale-near')!.isBaseline).toBe(false);
-    // Hidden stale also has its price treated as null in the returned shape.
-    expect(out.find((s) => s.id === 'stale-near')!.price_cents).toBeNull();
+    expect(out.find((s) => s.id === 'unverified-near')!.isBaseline).toBe(false);
+    // Hidden also has its price treated as null in the returned shape.
+    expect(out.find((s) => s.id === 'unverified-near')!.price_cents).toBeNull();
+  });
+
+  it('keeps a price-aged-old station visible as long as it was verified recently', () => {
+    // The product reality this fix exists for: Google's updateTime can sit
+    // unchanged for weeks while refresh-prices is still successfully fetching
+    // the same value daily. Old observed_at + fresh last_verified_at → visible.
+    const monthOldPriceTime = new Date(NOW.getTime() - 30 * 24 * 3_600_000).toISOString();
+    const stations = [
+      station('aged-but-verified', {
+        distance_meters: 1000,
+        price_cents: 500,
+        observed_at: monthOldPriceTime,
+        last_verified_at: fresh,
+      }),
+    ];
+    const out = annotateWithSavings(stations, 91);
+    const s = out.find((x) => x.id === 'aged-but-verified')!;
+    expect(s.price_cents).toBe(500);
+    expect(s.isBaseline).toBe(true);
   });
 
   it('skips savings for stations of the wrong octane', () => {

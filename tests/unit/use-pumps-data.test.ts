@@ -45,6 +45,7 @@ function station(over: Partial<StationWithPrice> & { id: string }): StationWithP
     price_cents: over.price_cents ?? null,
     source_kind: 'google',
     observed_at: over.observed_at ?? new Date().toISOString(),
+    last_verified_at: over.last_verified_at ?? new Date().toISOString(),
     distance_meters: over.distance_meters ?? 1000,
   };
 }

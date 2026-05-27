@@ -136,12 +136,15 @@ Deno.serve(async (req) => {
       continue;
     }
 
-    // For each mapped fuel, only insert if observed_at is newer than what we
-    // already have for (station, octane, 'google').
+    // For each mapped fuel: insert a new row only if Google's updateTime
+    // moved forward, but always bump `last_verified_at` on the latest row.
+    // The visibility cutoff reads last_verified_at, so this keeps stations
+    // visible when prices are stable but the cron is running.
+    const verifiedAt = new Date().toISOString();
     for (const m of mapped) {
       const { data: latest } = await supabase
         .from('prices')
-        .select('observed_at')
+        .select('id, observed_at')
         .eq('station_id', s.id)
         .eq('octane', m.octane)
         .eq('source_kind', 'google')
@@ -150,6 +153,10 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (latest && new Date(latest.observed_at) >= new Date(m.observed_at)) {
+        await supabase
+          .from('prices')
+          .update({ last_verified_at: verifiedAt })
+          .eq('id', latest.id);
         continue;
       }
 
@@ -159,6 +166,7 @@ Deno.serve(async (req) => {
         price_cents: m.price_cents,
         source_kind: 'google',
         observed_at: m.observed_at,
+        last_verified_at: verifiedAt,
       });
       if (!insErr) updated += 1;
     }

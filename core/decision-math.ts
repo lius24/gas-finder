@@ -73,13 +73,16 @@ export function annotateWithSavings(
   const isAllowedOctane = (o: Octane | null): o is Octane =>
     o !== null && allowed.has(o);
 
-  // Treat hidden (>7d) prices as null so a stale-but-cheap reading can't
-  // become the baseline. Mirror the StationCard's render-time behavior.
+  // Treat hidden (verified >7d ago) prices as null so a stale-but-cheap
+  // reading can't become the baseline. Visibility reads last_verified_at
+  // (system freshness — when refresh-prices last touched the row), NOT
+  // observed_at (Google's updateTime, which can sit unchanged for weeks
+  // when the pump's price is stable).
   const effective = stations.map((s) => {
     if (s.price_cents === null) return s;
     if (!isAllowedOctane(s.octane)) return s;
-    if (isHidden(s.observed_at)) {
-      return { ...s, price_cents: null, observed_at: null };
+    if (isHidden(s.last_verified_at)) {
+      return { ...s, price_cents: null, observed_at: null, last_verified_at: null };
     }
     return s;
   });

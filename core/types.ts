@@ -42,7 +42,11 @@ export type StationWithPrice = Station & {
   octane: Octane | null;
   price_cents: number | null;
   source_kind: SourceKind | null;
+  // observed_at = Google's fp.updateTime (the price's real-world age).
+  // last_verified_at = when refresh-prices last successfully fetched this row.
+  // Visibility cutoff reads last_verified_at; the "Xd old" chip reads observed_at.
   observed_at: string | null;
+  last_verified_at: string | null;
   distance_meters: number;
 };
 
